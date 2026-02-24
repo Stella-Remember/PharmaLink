@@ -1,0 +1,213 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+   url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PHARMACY_OWNER
+  PHARMACIST
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PROCESSED
+}
+
+enum SaleStatus {
+  COMPLETED
+  PENDING
+  CANCELLED
+}
+
+model User {
+  id            String        @id @default(uuid())
+  email         String        @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String? 
+  role          Role
+  pharmacyId    String?
+  pharmacy      Pharmacy?     @relation(fields: [pharmacyId], references: [id])
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Relations
+  ownedStores   Pharmacy[]    @relation("Owner")
+  staffEntries  Staff[]
+  claims        Claim[]
+  sales         Sale[]
+}
+
+model Pharmacy {
+  id            String        @id @default(uuid())
+  name          String
+  address       String?
+  phone         String?
+  email         String?
+  licenseNumber String        @unique
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  users         User[]    // This links back to User model
+  
+  // Relations
+  ownerId       String
+  owner         User          @relation("Owner", fields: [ownerId], references: [id])
+  staff         Staff[]
+  inventory     Inventory[]
+  medicines     Medicine[]
+  sales         Sale[]
+  claims        Claim[]
+  lowStockAlerts LowStockAlert[] // 
+}
+
+model Staff {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  pharmacyId    String
+  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
+  joinedAt      DateTime      @default(now())
+  isActive      Boolean       @default(true)
+
+  @@unique([userId, pharmacyId])
+}
+
+model Medicine {
+  id            String        @id @default(uuid())
+  name          String
+  genericName   String?
+  category      String?
+  manufacturer   String?
+  strength      String?
+  form          String?
+  description   String?
+  requiresPrescription Boolean  @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Relations
+  pharmacyId    String
+  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
+  inventory     Inventory[]
+  
+  @@unique([name, pharmacyId])
+}
+
+model Inventory {
+  id            String        @id @default(uuid())
+  medicineId    String
+  medicine      Medicine      @relation(fields: [medicineId], references: [id])
+  pharmacyId    String
+  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
+  batchNumber   String
+  expiryDate    DateTime
+  quantity      Int
+  reorderLevel  Int
+  unitPrice     Float
+  sellingPrice  Float
+  supplierId    String?
+  supplier      Supplier?     @relation(fields: [supplierId], references: [id])
+  location      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Relations - 
+  saleItems     SaleItem[]
+  claims        Claim[]
+  lowStockAlerts LowStockAlert[]
+  
+  @@unique([medicineId, pharmacyId, batchNumber])
+  @@index([expiryDate])
+  @@index([quantity])
+}
+
+model Supplier {
+  id            String        @id @default(uuid())
+  name          String
+  contactPerson String?
+  email         String?
+  phone         String?
+  address       String?
+  taxId         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Relations
+  inventory     Inventory[]
+}
+
+model Sale {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  pharmacyId    String
+  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  customerName  String?
+  customerEmail String?
+  subtotal      Float
+  tax           Float         @default(0)
+  discount      Float         @default(0)
+  total         Float
+  status        SaleStatus    @default(COMPLETED)
+  createdAt     DateTime      @default(now())
+  
+  // Relations
+  items         SaleItem[]
+}
+
+model SaleItem {
+  id            String        @id @default(uuid())
+  saleId        String
+  sale          Sale          @relation(fields: [saleId], references: [id])
+  inventoryId   String
+  inventory     Inventory     @relation(fields: [inventoryId], references: [id])
+  medicineName  String
+  quantity      Int
+  unitPrice     Float
+  totalPrice    Float
+}
+
+model Claim {
+  id            String        @id @default(uuid())
+  claimNumber   String        @unique
+  pharmacyId    String
+  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  inventoryId   String?
+  inventory     Inventory?    @relation(fields: [inventoryId], references: [id])
+  claimType     String
+  description   String
+  quantity      Int
+  amount        Float?
+  status        ClaimStatus   @default(PENDING)
+  approvedBy    String?
+  approvedAt    DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model LowStockAlert {
+  id            String        @id @default(uuid())
+  inventoryId   String
+  inventory     Inventory     @relation(fields: [inventoryId], references: [id])
+  pharmacyId    String
+  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
+  currentStock  Int
+  reorderLevel  Int
+  isResolved    Boolean       @default(false)
+  resolvedAt    DateTime?
+  createdAt     DateTime      @default(now())
+}
