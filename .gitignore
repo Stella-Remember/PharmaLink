@@ -1,2 +1,4 @@
 node_modules/
-
+src/generated/
+.env
+backend/.env
