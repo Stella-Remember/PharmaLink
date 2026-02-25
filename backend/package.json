@@ -4,8 +4,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-  "start": "npx prisma migrate deploy && node dist/index.js",
-    "railway-start": "npm run build && node dist/index.js",
+    "start": "npx prisma migrate deploy && npm run build && node dist/index.js",
     "dev": "nodemon src/index.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

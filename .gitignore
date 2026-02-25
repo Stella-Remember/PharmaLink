@@ -1,4 +1,16 @@
-node_modules/
+# prisma generated files
 src/generated/
+# Node modules
+node_modules/
+
+# TypeScript build output
+dist/
+
+# Environment variables
 .env
-backend/.env
+
+# Prisma client generated in dist
+dist/generated/
+
+# Optional: logs
+*.log
