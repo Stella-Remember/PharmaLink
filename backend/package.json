@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "start": "npm run build && node dist/index.js",
+    "start": "echo 'Current directory:' && pwd && echo 'Files in dist:' && ls -la dist/ || echo 'dist folder not found' && npm run build && node dist/index.js",
     "build": "tsc",
+    "railway-start": "npm run build && node dist/index.js",
     "dev": "nodemon src/index.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
