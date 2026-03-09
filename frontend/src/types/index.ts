@@ -54,3 +54,44 @@ export interface AuthResponse {
   pharmacyId?: string;
   pharmacyName?: string;
 }
+
+
+export interface InventoryItem {
+  id: string;
+  medicineName?: string;
+  name?: string;
+  unitPrice?: number;
+  sellingPrice?: number;
+  quantity: number;
+  category?: string;
+  batchNumber?: string;
+  expiryDate?: string;
+}
+
+interface CartItem {
+  id: string;
+  medicineName: string;
+  unitPrice: number;
+  quantity: number;
+  total: number;
+  batchNumber?: string;
+  expiryDate?: string;
+}
+
+export interface SaleReceipt {
+  invoiceNumber: string;
+  items: CartItem[];
+  total: number;
+  paymentMethod: string;
+  timestamp: string;
+  pharmacist: string;
+  insuranceDetails?: InsuranceDetails;
+}
+
+interface InsuranceDetails {
+  patientName: string;
+  patientId: string;
+  insuranceProvider: string;
+  policyNumber: string;
+  diagnosis: string;
+}

@@ -64,11 +64,11 @@ export const authAPI = {
 // Users API
 export const userAPI = {
   getPharmacists: () => api.get('/users/pharmacists'),
-  createPharmacist: (data: any) => api.post('/users/pharmacist', data),
-  updatePharmacist: (id: string, data: any) => api.put(`/users/${id}`, data),
-  deletePharmacist: (id: string) => api.delete(`/users/${id}`),
-  getAll: () => api.get('/users'),
-  getById: (id: string) => api.get(`/users/${id}`),
+  createPharmacist: (data: any) => api.post('/users/pharmacists', data), // ✅ fixed: was '/users/pharmacist'
+  updatePharmacist: (id: string, data: any) => api.put(`/users/pharmacists/${id}`, data),
+  deletePharmacist: (id: string) => api.delete(`/users/pharmacists/${id}`),
+  getAll: () => api.get('/users/pharmacists'), // gets all pharmacists
+  getById: (id: string) => api.get(`/users/pharmacists/${id}`),
 };
 
 // Pharmacy API

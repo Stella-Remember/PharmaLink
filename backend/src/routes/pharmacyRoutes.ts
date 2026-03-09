@@ -1,9 +1,12 @@
+// backend/src/routes/pharmacyRoutes.ts
 import { Router } from 'express'
 import {
   getPharmacies,
-  createPharmacist,
-  assignPharmacist,
-  getPharmacyStaff
+  createPharmacy,
+  updatePharmacy,
+  deletePharmacy,
+  getDashboardStats,
+  getInventoryReport
 } from '../controllers/pharmacyController'
 import { authenticate, requireOwner } from '../middleware/auth'
 
@@ -12,9 +15,11 @@ const router = Router()
 router.use(authenticate)
 router.use(requireOwner)
 
-router.get('/', getPharmacies)
-router.post('/', createPharmacist)
-router.post('/:pharmacyId/staff', assignPharmacist)
-router.get('/:pharmacyId/staff', getPharmacyStaff)
+router.get('/dashboard-stats', getDashboardStats)      // GET /api/pharmacies/dashboard-stats
+router.get('/inventory-report', getInventoryReport)    // GET /api/pharmacies/inventory-report
+router.get('/', getPharmacies)                         // GET /api/pharmacies
+router.post('/', createPharmacy)                       // POST /api/pharmacies
+router.put('/:id', updatePharmacy)                     // PUT /api/pharmacies/:id
+router.delete('/:id', deletePharmacy)                  // DELETE /api/pharmacies/:id
 
 export default router

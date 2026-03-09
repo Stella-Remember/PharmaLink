@@ -1,154 +1,253 @@
-// src/controllers/pharmacyController.ts
+// backend/src/controllers/pharmacyController.ts
 import { Request, Response } from 'express'
 import { prisma } from '../utils/prisma'
-import { hashPassword } from '../utils/bcrypt'  // Make sure to import this!
-import { $Enums } from '@prisma/client'
 
+// GET /api/pharmacies — owner sees their pharmacies with real stats
 export const getPharmacies = async (req: Request, res: Response) => {
   try {
     const ownerId = req.user.id
 
     const pharmacies = await prisma.pharmacy.findMany({
-      where: { 
-        ownerId 
-      },
+      where: { ownerId },
       include: {
-        staff: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true
-              }
-            }
-          }
-        },
         _count: {
           select: {
-            inventory: true, 
-            sales: true
+            staff: { where: { isActive: true } }
           }
         }
       }
     })
 
-    res.json(pharmacies)
+    // For each pharmacy, fetch real stats
+    const enriched = await Promise.all(pharmacies.map(async (p) => {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      // Get all inventory for manual low stock calculation (Prisma can't compare two columns)
+      const [allInventory, todaySalesAgg, pendingClaims] = await Promise.all([
+        prisma.inventory.findMany({
+          where: { pharmacyId: p.id },
+          select: { quantity: true, reorderLevel: true }
+        }),
+        prisma.sale.aggregate({
+          where: { pharmacyId: p.id, createdAt: { gte: today } },
+          _sum: { total: true }
+        }),
+        prisma.claim.count({ where: { pharmacyId: p.id, status: 'PENDING' } })
+      ])
+
+      const lowStockCount = allInventory.filter(i => i.quantity <= i.reorderLevel).length
+
+      return {
+        id: p.id,
+        name: p.name,
+        location: p.address || '',   // schema uses 'address' not 'location'
+        address: p.address || '',
+        phone: p.phone || '',
+        email: p.email || '',
+        licenseNumber: p.licenseNumber,
+        status: p.isActive ? 'active' : 'inactive',
+        totalMedicines: allInventory.length,
+        lowStock: lowStockCount,
+        todaySales: todaySalesAgg._sum.total || 0,
+        employees: p._count.staff,
+        pendingClaims,
+        createdAt: p.createdAt
+      }
+    }))
+
+    res.json(enriched)
   } catch (error) {
     console.error('Get pharmacies error:', error)
     res.status(500).json({ error: 'Failed to fetch pharmacies' })
   }
 }
 
-export const createPharmacist = async (req: Request, res: Response) => {
-  const { email, password, firstName, lastName } = req.body
+// POST /api/pharmacies — owner creates a new branch/store
+export const createPharmacy = async (req: Request, res: Response) => {
+  try {
+    const ownerId = req.user.id
+    const { name, location, address, phone, email, licenseNumber } = req.body
+    // Accept both 'location' and 'address' from frontend
+    const storeAddress = address || location || ''
 
-  const owner = req.user
-
-  if (owner.role !== "PHARMACY_OWNER") {
-    return res.status(403).json({ error: "Only owners can create pharmacists" })
-  }
-
-  // use the helper already imported from ../utils/bcrypt
-  const hashedPassword = await hashPassword(password)
-
-  const pharmacist = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      firstName,
-      lastName,
-      role: "PHARMACIST"
+    if (!name || !licenseNumber) {
+      return res.status(400).json({ error: 'Store name and license number are required' })
     }
-  })
 
-  // link the new pharmacist to the owner's pharmacy via the staff table
-  if (owner.pharmacyId) {
-    await prisma.staff.create({
+    const existing = await prisma.pharmacy.findUnique({ where: { licenseNumber } })
+    if (existing) {
+      return res.status(400).json({ error: 'A pharmacy with this license number already exists' })
+    }
+
+    const pharmacy = await prisma.pharmacy.create({
       data: {
-        userId: pharmacist.id,
-        pharmacyId: owner.pharmacyId
+        name,
+        address: storeAddress,   // schema field is 'address'
+        phone: phone || null,
+        email: email || null,
+        licenseNumber,
+        ownerId,
+        isActive: true
       }
     })
-  }
 
-  res.status(201).json(pharmacist)
+    res.status(201).json({
+      ...pharmacy,
+      location: pharmacy.address || '',
+      totalMedicines: 0,
+      lowStock: 0,
+      todaySales: 0,
+      employees: 0,
+      pendingClaims: 0,
+      status: 'active'
+    })
+  } catch (error: any) {
+    console.error('Create pharmacy error:', error)
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'License number already registered' })
+    }
+    res.status(500).json({ error: 'Failed to create pharmacy' })
+  }
 }
 
-export const assignPharmacist = async (req: Request, res: Response) => {
+// PUT /api/pharmacies/:id
+export const updatePharmacy = async (req: Request, res: Response) => {
   try {
-    const { pharmacyId } = req.params
-    const pharmacyIdStr = Array.isArray(pharmacyId) ? pharmacyId[0] : pharmacyId
-    
-    const { email, firstName, lastName } = req.body
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
+    const ownerId = req.user.id
+    const { name, location, address, phone, email, isActive } = req.body
+    const storeAddress = address || location
 
-    // Check if pharmacist exists
-    let user = await prisma.user.findUnique({
-      where: { email }
+    const pharmacy = await prisma.pharmacy.findFirst({ where: { id, ownerId } })
+    if (!pharmacy) return res.status(404).json({ error: 'Pharmacy not found' })
+
+    const updated = await prisma.pharmacy.update({
+      where: { id },
+      data: {
+        ...(name && { name }),
+        ...(storeAddress !== undefined && { address: storeAddress }),
+        ...(phone !== undefined && { phone }),
+        ...(email !== undefined && { email }),
+        ...(isActive !== undefined && { isActive })
+      }
     })
+    res.json({ ...updated, location: updated.address || '' })
+  } catch (error) {
+    console.error('Update pharmacy error:', error)
+    res.status(500).json({ error: 'Failed to update pharmacy' })
+  }
+}
 
-    if (!user) {
-      // Create temporary password (should be reset on first login)
-      const tempPassword = Math.random().toString(36).slice(-8)
-      const hashedPassword = await hashPassword(tempPassword)
+// DELETE /api/pharmacies/:id
+export const deletePharmacy = async (req: Request, res: Response) => {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
+    const ownerId = req.user.id
 
-      user = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          firstName,
-          lastName,
-          role: 'PHARMACIST'
-        }
+    const pharmacy = await prisma.pharmacy.findFirst({ where: { id, ownerId } })
+    if (!pharmacy) return res.status(404).json({ error: 'Pharmacy not found' })
+
+    await prisma.pharmacy.update({ where: { id }, data: { isActive: false } })
+    res.json({ message: 'Store deactivated successfully' })
+  } catch (error) {
+    console.error('Delete pharmacy error:', error)
+    res.status(500).json({ error: 'Failed to delete pharmacy' })
+  }
+}
+
+// GET /api/pharmacies/dashboard — owner dashboard summary across all stores
+export const getDashboardStats = async (req: Request, res: Response) => {
+  try {
+    const ownerId = req.user.id
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const pharmacies = await prisma.pharmacy.findMany({
+      where: { ownerId, isActive: true },
+      select: { id: true }
+    })
+    const pharmacyIds = pharmacies.map(p => p.id)
+
+    if (pharmacyIds.length === 0) {
+      return res.json({
+        totalRevenue: 0, todaySales: 0, totalMedicines: 0,
+        lowStockCount: 0, totalEmployees: 0, pendingClaims: 0,
+        totalStores: 0
       })
     }
 
-    // Assign to pharmacy
-    const staff = await prisma.staff.create({
-      data: {
-        userId: user.id,
-        pharmacyId: pharmacyIdStr
-      },
-      include: {
-        user: true,
-        pharmacy: true
-      }
-    })
+    const [todaySalesAgg, allInventory, staffCount, pendingClaims] = await Promise.all([
+      prisma.sale.aggregate({
+        where: { pharmacyId: { in: pharmacyIds }, createdAt: { gte: today } },
+        _sum: { total: true }
+      }),
+      prisma.inventory.findMany({
+        where: { pharmacyId: { in: pharmacyIds } },
+        select: { quantity: true, reorderLevel: true }
+      }),
+      prisma.staff.count({
+        where: { pharmacyId: { in: pharmacyIds }, isActive: true }
+      }),
+      prisma.claim.count({
+        where: { pharmacyId: { in: pharmacyIds }, status: 'PENDING' }
+      })
+    ])
 
-    res.status(201).json(staff)
+    const lowStockCount = allInventory.filter(i => i.quantity <= i.reorderLevel).length
+
+    res.json({
+      totalStores: pharmacyIds.length,
+      todaySales: todaySalesAgg._sum.total || 0,
+      totalMedicines: allInventory.length,
+      lowStockCount,
+      totalEmployees: staffCount,
+      pendingClaims
+    })
   } catch (error) {
-    console.error('Assign pharmacist error:', error)
-    res.status(500).json({ error: 'Failed to assign pharmacist' })
+    console.error('Dashboard stats error:', error)
+    res.status(500).json({ error: 'Failed to fetch dashboard stats' })
   }
 }
 
-export const getPharmacyStaff = async (req: Request, res: Response) => {
+// GET /api/pharmacies/inventory-report — stock report across all stores
+export const getInventoryReport = async (req: Request, res: Response) => {
   try {
-    const { pharmacyId } = req.params
-    const pharmacyIdStr = Array.isArray(pharmacyId) ? pharmacyId[0] : pharmacyId
+    const ownerId = req.user.id
+    const pharmacies = await prisma.pharmacy.findMany({
+      where: { ownerId, isActive: true },
+      select: { id: true, name: true }
+    })
+    const pharmacyMap = Object.fromEntries(pharmacies.map(p => [p.id, p.name]))
+    const pharmacyIds = pharmacies.map(p => p.id)
 
-    const staff = await prisma.staff.findMany({
-      where: {
-        pharmacyId: pharmacyIdStr,
-        isActive: true
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            createdAt: true
-          }
-        }
-      }
+    const inventory = await prisma.inventory.findMany({
+      where: { pharmacyId: { in: pharmacyIds } },
+      include: { medicine: true },
+      orderBy: { quantity: 'asc' }
     })
 
-    res.json(staff)
+    const report = inventory.map(item => ({
+      id: item.id,
+      medicineName: item.medicine?.name || 'Unknown',
+      genericName: item.medicine?.genericName || '',
+      medicineType: (item.medicine as any)?.medicineType || 'GENERIC',
+      category: item.medicine?.category || '',
+      batchNumber: item.batchNumber,
+      expiryDate: item.expiryDate,
+      quantity: item.quantity,
+      reorderLevel: item.reorderLevel,
+      sellingPrice: item.sellingPrice,
+      pharmacyName: pharmacyMap[item.pharmacyId] || 'Unknown',
+      status: item.quantity === 0 ? 'OUT_OF_STOCK'
+        : item.quantity <= item.reorderLevel ? 'LOW_STOCK'
+        : new Date(item.expiryDate) < new Date() ? 'EXPIRED'
+        : 'OK'
+    }))
+
+    res.json(report)
   } catch (error) {
-    console.error('Get pharmacy staff error:', error)
-    res.status(500).json({ error: 'Failed to fetch pharmacy staff' })
+    console.error('Inventory report error:', error)
+    res.status(500).json({ error: 'Failed to fetch inventory report' })
   }
 }

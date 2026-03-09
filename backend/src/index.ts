@@ -14,6 +14,8 @@ import { swaggerDocument } from './swagger';
 import staffRoutes from "./routes/staffRoutes"
 import reportRoutes from "./routes/reportRoutes"
 import userRoutes from './routes/users';
+import otpRoutes from './otpRoutes';
+
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -28,6 +30,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use("/api/staff", staffRoutes)
 app.use("/api/reports", reportRoutes)
 app.use('/api/users', userRoutes);
+app.use('/api/otp', otpRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
   customCss: '.swagger-ui .topbar { display: none }',

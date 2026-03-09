@@ -2,7 +2,11 @@
 import { createTheme } from '@mantine/core';
 
 export const theme = createTheme({
-  fontFamily: 'Inter, system-ui, sans-serif',
+  fontFamily: 'Numans, system-ui, sans-serif',
+  fontFamilyMonospace: 'ui-monospace, monospace',
+  headings: {
+    fontFamily: 'Taviraj, system-ui, sans-serif',
+  },
   fontSizes: {
     xs: '12px',
     sm: '14px',
@@ -10,73 +14,53 @@ export const theme = createTheme({
     lg: '18px',
     xl: '20px',
   },
-  lineHeights: {
-    xs: '1.5',
-    sm: '1.5',
-    md: '1.5',
-    lg: '1.5',
-    xl: '1.5',
-  },
   colors: {
-    // Custom primary blue matching Figma #1E88E5
+    // Steel Blue
     primary: [
-      '#E3F2FD', // muted/light
-      '#BBDEFB',
-      '#90CAF9',
-      '#64B5F6',
-      '#42A5F5',
-      '#1E88E5', // primary
-      '#1976D2',
-      '#1565C0',
-      '#0D47A1',
-      '#0A356E',
+      '#EFF7FF',
+      '#D6EAF8',
+      '#AED6F1',
+      '#85C1E9',
+      '#6AAED6',
+      '#4F7CAC', // [5] main
+      '#3D6A96',
+      '#2E5580',
+      '#201E50',
+      '#16133A',
     ],
-    // Custom secondary green matching Figma #43A047
-    secondary: [
-      '#E8F5E9',
-      '#C8E6C9',
-      '#A5D6A7',
-      '#81C784',
-      '#66BB6A',
-      '#43A047', // secondary
-      '#2E7D32',
-      '#1B5E20',
-      '#1B4D1B',
-      '#0A2E0A',
+    // Seagrass
+    accent: [
+      '#E8F8F4',
+      '#C3EDE4',
+      '#86D9C7',
+      '#50C5AA',
+      '#3DAF93',
+      '#32A287', // [5] main
+      '#268A72',
+      '#1C705C',
+      '#125546',
+      '#093B30',
     ],
-    // Muted background matching Figma #E3F2FD
-    muted: [
-      '#F5F5F5',
-      '#EEEEEE',
-      '#E3F2FD', // muted
-      '#E0E0E0',
-      '#BDBDBD',
-      '#9E9E9E',
-      '#757575',
-      '#616161', // muted-foreground
-      '#424242',
-      '#212121', // foreground
-    ],
-    // Destructive red matching Figma #E53935
-    destructive: [
-      '#FFEBEE',
-      '#FFCDD2',
-      '#EF9A9A',
-      '#E57373',
-      '#EF5350',
-      '#E53935', // destructive
-      '#D32F2F',
-      '#C62828',
-      '#B71C1C',
-      '#8B0000',
+    // Dark surfaces
+    dark: [
+      '#EFF7FF', // [0] text
+      '#8FA8C2', // [1] muted text
+      '#2A2845', // [2] elevated
+      '#22203A', // [3] card
+      '#1C1A2E', // [4] surface
+      '#141318', // [5] base bg
+      '#0E0C18',
+      '#080711',
+      '#040309',
+      '#010105',
     ],
   },
-  primaryColor: 'primary',
-  primaryShade: 5, // index 5 = #1E88E5
+  primaryColor: 'accent',
+  primaryShade: 5,
   radius: {
-    xs: '0.5rem',
-    sm: '0.625rem',
-    md: '0.75rem', // matches your Figma radius
+    xs: '0.375rem',
+    sm: '0.5rem',
+    md: '0.75rem',
     lg: '1rem',
     xl: '1.25rem',
   },
@@ -89,39 +73,37 @@ export const theme = createTheme({
   },
   components: {
     Button: {
-      defaultProps: {
-        radius: 'md',
-      },
+      defaultProps: { radius: 'md' },
+      styles: { root: { fontWeight: 500 } },
+    },
+    Card: {
+      defaultProps: { radius: 'md', shadow: 'sm' },
       styles: {
         root: {
-          fontWeight: 500,
+          backgroundColor: '#22203A',
+          border: '1px solid #2E2C4A',
         },
       },
     },
-    Card: {
-      defaultProps: {
-        radius: 'md',
-        shadow: 'sm',
-      },
-    },
     Input: {
-      defaultProps: {
-        radius: 'md',
-      },
+      defaultProps: { radius: 'md' },
       styles: {
         input: {
-          backgroundColor: '#F5F5F5', // input-background from Figma
-          borderColor: 'transparent',
-          '&:focus': {
-            borderColor: '#1E88E5',
-          },
+          backgroundColor: '#22203A',
+          borderColor: '#2E2C4A',
+          color: '#EFF7FF',
+          '&:focus': { borderColor: '#32A287' },
+          '&::placeholder': { color: 'rgba(239,247,255,0.3)' },
         },
       },
     },
     Paper: {
-      defaultProps: {
-        radius: 'md',
-        shadow: 'sm',
+      defaultProps: { radius: 'md', shadow: 'sm' },
+      styles: {
+        root: {
+          backgroundColor: '#1C1A2E',
+          border: '1px solid #2E2C4A',
+        },
       },
     },
   },

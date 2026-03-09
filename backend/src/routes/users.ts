@@ -1,21 +1,23 @@
-import { Router } from 'express';
+// src/routes/user.ts
+import { Router } from 'express'
 import {
   getPharmacists,
+  getAllUsers,
   createPharmacist,
   updatePharmacist,
   deletePharmacist
-} from '../controllers/userController';
-import { authenticate, requireOwner } from '../middleware/auth';
+} from '../controllers/userController'
+import { authenticate, requireOwner } from '../middleware/auth'
 
-const router = Router();
+const router = Router()
 
-// All routes require authentication and owner role
-router.use(authenticate);
-router.use(requireOwner);
+router.use(authenticate)
+router.use(requireOwner)
 
-router.get('/pharmacists', getPharmacists);
-router.post('/pharmacists', createPharmacist);
-router.put('/pharmacists/:id', updatePharmacist);
-router.delete('/pharmacists/:id', deletePharmacist);
+router.get('/', getAllUsers)                        // GET /api/users
+router.get('/pharmacists', getPharmacists)         // GET /api/users/pharmacists
+router.post('/pharmacists', createPharmacist)      // POST /api/users/pharmacists
+router.put('/pharmacists/:id', updatePharmacist)   // PUT /api/users/pharmacists/:id
+router.delete('/pharmacists/:id', deletePharmacist) // DELETE /api/users/pharmacists/:id
 
-export default router;
+export default router
