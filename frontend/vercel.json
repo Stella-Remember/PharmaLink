@@ -1,8 +1,17 @@
 {
   "rewrites": [
+<<<<<<< HEAD
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
 }
+=======
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install"
+}
+>>>>>>> 55d2d003ef48c09c2a09e51325f1e07c7ee0b06c

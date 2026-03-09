@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { LoginCredentials, RegisterData, AuthResponse, User } from '../types';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 console.log('🔌 API Client initialized with URL:', API_URL);
 
 const api = axios.create({
