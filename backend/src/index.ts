@@ -20,14 +20,24 @@ import otpRoutes from './otpRoutes';
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://pharma-link-nu.vercel.app',
-    'https://pharma-link-46df2582-remembers-projects-46df2582.vercel.app',
-  ],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    const allowed = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://pharma-link-nu.vercel.app',
+    ];
+    
+    // Allow any vercel.app subdomain
+    if (allowed.includes(origin) || origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
