@@ -26,7 +26,7 @@ app.use(cors({
     'http://localhost:5173',
     'http://localhost:3000',
     'https://pharma-link-nu.vercel.app',
-    /\.vercel\.app$/,
+    'https://pharma-link-46df2582-remembers-projects-46df2582.vercel.app',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
