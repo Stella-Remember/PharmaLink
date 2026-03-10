@@ -14,7 +14,7 @@ import { swaggerDocument } from './swagger';
 import staffRoutes from "./routes/staffRoutes"
 import reportRoutes from "./routes/reportRoutes"
 import userRoutes from './routes/users';
-import otpRoutes from './otpRoutes';
+import otpRoutes from './routes/otpRoutes';
 
 
 const app = express()
