@@ -2,8 +2,19 @@
 import axios from 'axios';
 import { LoginCredentials, RegisterData, AuthResponse, User } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const getApiUrl = () => {
+  // Check if we're in production (Vercel)
+  if (import.meta.env.PROD) {
+    // Use production backend URL
+    return 'https://pharmalink-production.up.railway.app/api';
+  }
+  // Development: use localhost or environment variable
+  return import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+};
+
+const API_URL = getApiUrl();
 console.log('🔌 API Client initialized with URL:', API_URL);
+console.log('🔧 Environment:', import.meta.env.MODE);
 
 const api = axios.create({
   baseURL: API_URL,
