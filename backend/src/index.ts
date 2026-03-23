@@ -25,9 +25,13 @@ app.use(cors({
     origin: [
       'http://localhost:3000',
       'http://localhost:5173',
-      'https://pharmalink-nu.vercel.app'
+      'https://pharmalink-nu.vercel.app',
+      'https://pharma-link-nu.vercel.app', 
+      'https://pharmalink-link.nu.vercel.app'
     ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
