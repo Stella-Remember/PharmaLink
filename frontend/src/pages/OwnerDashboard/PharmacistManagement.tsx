@@ -1,415 +1,264 @@
+// src/pages/OwnerDashboard/PharmacistManagement.tsx
 import React, { useState, useEffect } from 'react';
-import { 
-  UserPlusIcon, 
-  TrashIcon,
-  EnvelopeIcon,
-  PhoneIcon,
-  BuildingStorefrontIcon
-} from '@heroicons/react/24/outline';
 import axios from 'axios';
 
 const userAPI = {
-  getPharmacists: () => axios.get('/api/users/pharmacists'),
-  createPharmacist: (data: any) => axios.post('/api/users/pharmacists', data),
-  deletePharmacist: (id: string) => axios.delete(`/api/users/pharmacists/${id}`)
+  getPharmacists:    ()         => axios.get('/api/users/pharmacists'),
+  createPharmacist:  (data: any) => axios.post('/api/users/pharmacists', data),
+  deletePharmacist:  (id: string) => axios.delete(`/api/users/pharmacists/${id}`),
 };
-
-const pharmacyAPI = {
-  getAll: () => axios.get('/api/pharmacies')
-};
-
-const staffAPI = {
-  assign: (data: any) => axios.post('/api/staff/assign', data)
-};
+const pharmacyAPI = { getAll: () => axios.get('/api/pharmacies') };
+const staffAPI    = { assign: (data: any) => axios.post('/api/staff/assign', data) };
 
 interface Pharmacist {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  pharmacies?: {
-    id: string;
-    name: string;
-    role: string;
-  }[];
+  id: string; email: string; firstName: string; lastName: string; phone?: string;
+  pharmacies?: { id: string; name: string; role: string; }[];
 }
+interface Pharmacy { id: string; name: string; location: string; }
 
-interface Pharmacy {
-  id: string;
-  name: string;
-  location: string;
-}
+// ── SVG Icons ─────────────────────────────────────────────────────────────────
+const CloseIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+);
+const AddUserIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+  </svg>
+);
+const AssignIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+);
+const TrashIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+  </svg>
+);
 
+// ── Input component ───────────────────────────────────────────────────────────
+const Input: React.FC<{
+  label: string; type?: string; required?: boolean;
+  value: string; onChange: (v: string) => void; placeholder?: string;
+}> = ({ label, type = 'text', required, value, onChange, placeholder }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-600 mb-1.5">{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
+    <input type={type} required={required} value={value} placeholder={placeholder}
+      onChange={e => onChange(e.target.value)}
+      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50 text-gray-800" />
+  </div>
+);
+
+// ── Modal shell ───────────────────────────────────────────────────────────────
+const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 className="font-semibold text-gray-800">{title}</h3>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition"><CloseIcon /></button>
+      </div>
+      {children}
+    </div>
+  </div>
+);
+
+// ── Main Component ────────────────────────────────────────────────────────────
 const PharmacistManagement: React.FC = () => {
   const [pharmacists, setPharmacists] = useState<Pharmacist[]>([]);
-  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedPharmacist, setSelectedPharmacist] = useState<Pharmacist | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    phone: '',
-    pharmacyId: '',
-    role: 'PHARMACIST'
+  const [pharmacies, setPharmacies]   = useState<Pharmacy[]>([]);
+  const [showAdd, setShowAdd]         = useState(false);
+  const [showAssign, setShowAssign]   = useState(false);
+  const [selected, setSelected]       = useState<Pharmacist | null>(null);
+  const [loading, setLoading]         = useState(true);
+  const [submitting, setSubmitting]   = useState(false);
+
+  const [form, setForm] = useState({
+    firstName: '', lastName: '', email: '', password: '', phone: '', pharmacyId: '', role: 'PHARMACIST'
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const set = (k: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [k]: v }));
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [pharmacistsRes, pharmaciesRes] = await Promise.all([
-        userAPI.getPharmacists(),
-        pharmacyAPI.getAll()
-      ]);
-      setPharmacists(pharmacistsRes.data);
-      setPharmacies(pharmaciesRes.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
+      const [pRes, phRes] = await Promise.all([userAPI.getPharmacists(), pharmacyAPI.getAll()]);
+      setPharmacists(pRes.data);
+      setPharmacies(phRes.data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
-  const handleAddPharmacist = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await userAPI.createPharmacist(formData);
-      setShowAddModal(false);
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        password: '',
-        phone: '',
-        pharmacyId: '',
-        role: 'PHARMACIST'
-      });
-      fetchData();
-    } catch (error) {
-      console.error('Error adding pharmacist:', error);
-    }
+  useEffect(() => { fetchData(); }, []);
+
+  const resetForm = () => setForm({ firstName: '', lastName: '', email: '', password: '', phone: '', pharmacyId: '', role: 'PHARMACIST' });
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault(); setSubmitting(true);
+    try { await userAPI.createPharmacist(form); setShowAdd(false); resetForm(); fetchData(); }
+    catch (e) { console.error(e); }
+    finally { setSubmitting(false); }
   };
 
-  const handleAssignToPharmacy = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPharmacist) return;
-    
-    try {
-      await staffAPI.assign({
-        userId: selectedPharmacist.id,
-        pharmacyId: formData.pharmacyId,
-        role: formData.role
-      });
-      setShowAssignModal(false);
-      setSelectedPharmacist(null);
-      fetchData();
-    } catch (error) {
-      console.error('Error assigning pharmacist:', error);
-    }
+  const handleAssign = async (e: React.FormEvent) => {
+    e.preventDefault(); if (!selected) return; setSubmitting(true);
+    try { await staffAPI.assign({ userId: selected.id, pharmacyId: form.pharmacyId, role: form.role }); setShowAssign(false); setSelected(null); fetchData(); }
+    catch (e) { console.error(e); }
+    finally { setSubmitting(false); }
   };
 
-  const handleDeletePharmacist = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this pharmacist?')) {
-      try {
-        await userAPI.deletePharmacist(id);
-        fetchData();
-      } catch (error) {
-        console.error('Error deleting pharmacist:', error);
-      }
-    }
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Remove this pharmacist?')) return;
+    try { await userAPI.deletePharmacist(id); fetchData(); }
+    catch (e) { console.error(e); }
   };
+
+  const initials = (p: Pharmacist) => `${p.firstName[0]}${p.lastName[0]}`.toUpperCase();
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Pharmacist Management</h2>
-          <p className="text-gray-500 mt-1">Add and manage pharmacists across your pharmacies</p>
+          <h2 className="text-2xl font-semibold text-gray-800">Pharmacist Management</h2>
+          <p className="text-sm text-gray-400 mt-0.5">Add and manage pharmacists across your stores</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center"
-        >
-          <UserPlusIcon className="h-5 w-5 mr-2" />
-          Add Pharmacist
+        <button onClick={() => setShowAdd(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-[#1a2235] text-white rounded-lg font-medium text-sm hover:bg-[#2a3245] transition">
+          <AddUserIcon /> Add Pharmacist
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="text-2xl font-bold text-gray-800">{pharmacists.length}</div>
-          <div className="text-sm text-gray-500">Total Pharmacists</div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="text-2xl font-bold text-gray-800">{pharmacies.length}</div>
-          <div className="text-sm text-gray-500">Total Pharmacies</div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="text-2xl font-bold text-gray-800">
-            {pharmacists.filter(p => p.pharmacies?.length).length}
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: 'Total Pharmacists', value: pharmacists.length },
+          { label: 'Total Pharmacies',  value: pharmacies.length },
+          { label: 'Assigned',          value: pharmacists.filter(p => p.pharmacies?.length).length },
+        ].map(s => (
+          <div key={s.label} className="bg-white rounded-xl border border-gray-100 p-4">
+            <div className="text-2xl font-semibold text-gray-800">{s.value}</div>
+            <div className="text-sm text-gray-400 mt-0.5">{s.label}</div>
           </div>
-          <div className="text-sm text-gray-500">Assigned Pharmacists</div>
-        </div>
+        ))}
       </div>
 
-      {/* Pharmacists List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h3 className="font-semibold text-gray-800">Pharmacists</h3>
+      {/* List */}
+      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-gray-100">
+          <h3 className="font-medium text-gray-700 text-sm">Pharmacists</h3>
         </div>
-        
         {loading ? (
-          <div className="text-center py-8">Loading...</div>
+          <div className="p-8 text-center">
+            <div className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="text-sm text-gray-400">Loading...</div>
+          </div>
+        ) : pharmacists.length === 0 ? (
+          <div className="p-12 text-center text-sm text-gray-400">
+            No pharmacists yet. Click "Add Pharmacist" to get started.
+          </div>
         ) : (
-          <div className="divide-y divide-gray-200">
-            {pharmacists.map((pharmacist) => (
-              <div key={pharmacist.id} className="p-6 hover:bg-gray-50 transition">
+          <div className="divide-y divide-gray-50">
+            {pharmacists.map(pharmacist => (
+              <div key={pharmacist.id} className="p-5 hover:bg-gray-50 transition">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-blue-600 font-semibold">
-                          {pharmacist.firstName[0]}{pharmacist.lastName[0]}
-                        </span>
-                      </div>
-                      <div className="ml-4">
-                        <h4 className="font-semibold text-gray-800">
-                          {pharmacist.firstName} {pharmacist.lastName}
-                        </h4>
-                        <div className="flex items-center space-x-4 mt-1">
-                          <span className="flex items-center text-sm text-gray-500">
-                            <EnvelopeIcon className="h-4 w-4 mr-1" />
-                            {pharmacist.email}
-                          </span>
-                          {pharmacist.phone && (
-                            <span className="flex items-center text-sm text-gray-500">
-                              <PhoneIcon className="h-4 w-4 mr-1" />
-                              {pharmacist.phone}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-[#1a2235] flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                      {initials(pharmacist)}
                     </div>
-                    
-                    {/* Assigned Pharmacies */}
-                    {pharmacist.pharmacies && pharmacist.pharmacies.length > 0 && (
-                      <div className="mt-4 ml-14">
-                        <p className="text-xs text-gray-500 mb-2">Assigned to:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {pharmacist.pharmacies.map((pharmacy) => (
-                            <span
-                              key={pharmacy.id}
-                              className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
-                            >
-                              <BuildingStorefrontIcon className="h-3 w-3 mr-1" />
-                              {pharmacy.name} ({pharmacy.role})
+                    <div className="min-w-0">
+                      <div className="font-medium text-gray-800">{pharmacist.firstName} {pharmacist.lastName}</div>
+                      <div className="text-sm text-gray-400">{pharmacist.email}</div>
+                      {pharmacist.phone && <div className="text-xs text-gray-400 mt-0.5">{pharmacist.phone}</div>}
+                      {pharmacist.pharmacies && pharmacist.pharmacies.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {pharmacist.pharmacies.map(ph => (
+                            <span key={ph.id} className="text-xs px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full font-medium">
+                              {ph.name} · {ph.role}
                             </span>
                           ))}
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => {
-                        setSelectedPharmacist(pharmacist);
-                        setShowAssignModal(true);
-                      }}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                      title="Assign to Pharmacy"
-                    >
-                      <BuildingStorefrontIcon className="h-5 w-5" />
+                  <div className="flex items-center gap-1 ml-3">
+                    <button onClick={() => { setSelected(pharmacist); setShowAssign(true); }}
+                      className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                      title="Assign to pharmacy">
+                      <AssignIcon />
                     </button>
-                    <button
-                      onClick={() => handleDeletePharmacist(pharmacist.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                      title="Delete Pharmacist"
-                    >
-                      <TrashIcon className="h-5 w-5" />
+                    <button onClick={() => handleDelete(pharmacist.id)}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                      title="Remove pharmacist">
+                      <TrashIcon />
                     </button>
                   </div>
                 </div>
               </div>
             ))}
-            
-            {pharmacists.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                No pharmacists added yet. Click "Add Pharmacist" to get started.
-              </div>
-            )}
           </div>
         )}
       </div>
 
-      {/* Add Pharmacist Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold mb-4">Add New Pharmacist</h3>
-            <form onSubmit={handleAddPharmacist}>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.firstName}
-                      onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.lastName}
-                      onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone (Optional)
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Add Pharmacist
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Add Modal */}
+      {showAdd && (
+        <Modal title="Add New Pharmacist" onClose={() => { setShowAdd(false); resetForm(); }}>
+          <form onSubmit={handleAdd} className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="First name" required value={form.firstName} onChange={set('firstName')} />
+              <Input label="Last name"  required value={form.lastName}  onChange={set('lastName')} />
+            </div>
+            <Input label="Email"    type="email"    required value={form.email}    onChange={set('email')} />
+            <Input label="Password" type="password" required value={form.password} onChange={set('password')} />
+            <Input label="Phone"    type="tel"               value={form.phone}    onChange={set('phone')} placeholder="+250 7XX XXX XXX" />
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => { setShowAdd(false); resetForm(); }}
+                className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
+                Cancel
+              </button>
+              <button type="submit" disabled={submitting}
+                className="flex-[2] py-2.5 bg-[#1a2235] text-white rounded-lg text-sm font-medium hover:bg-[#2a3245] transition disabled:opacity-50">
+                {submitting ? 'Adding...' : 'Add Pharmacist'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
 
-      {/* Assign to Pharmacy Modal */}
-      {showAssignModal && selectedPharmacist && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold mb-4">
-              Assign {selectedPharmacist.firstName} {selectedPharmacist.lastName} to Pharmacy
-            </h3>
-            <form onSubmit={handleAssignToPharmacy}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Pharmacy
-                  </label>
-                  <select
-                    required
-                    value={formData.pharmacyId}
-                    onChange={(e) => setFormData({...formData, pharmacyId: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Choose a pharmacy</option>
-                    {pharmacies.map((pharmacy) => (
-                      <option key={pharmacy.id} value={pharmacy.id}>
-                        {pharmacy.name} - {pharmacy.location}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Role
-                  </label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({...formData, role: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="PHARMACIST">Pharmacist</option>
-                    <option value="MANAGER">Pharmacy Manager</option>
-                    <option value="HELPER">Helper</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAssignModal(false);
-                    setSelectedPharmacist(null);
-                  }}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Assign
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Assign Modal */}
+      {showAssign && selected && (
+        <Modal title={`Assign ${selected.firstName} ${selected.lastName}`} onClose={() => { setShowAssign(false); setSelected(null); }}>
+          <form onSubmit={handleAssign} className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1.5">Pharmacy<span className="text-red-400 ml-0.5">*</span></label>
+              <select required value={form.pharmacyId} onChange={e => set('pharmacyId')(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50 text-gray-800">
+                <option value="">Select a pharmacy</option>
+                {pharmacies.map(p => <option key={p.id} value={p.id}>{p.name} — {p.location}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1.5">Role</label>
+              <select value={form.role} onChange={e => set('role')(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50 text-gray-800">
+                <option value="PHARMACIST">Pharmacist</option>
+                <option value="MANAGER">Pharmacy Manager</option>
+                <option value="HELPER">Helper</option>
+              </select>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => { setShowAssign(false); setSelected(null); }}
+                className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
+                Cancel
+              </button>
+              <button type="submit" disabled={submitting}
+                className="flex-[2] py-2.5 bg-[#1a2235] text-white rounded-lg text-sm font-medium hover:bg-[#2a3245] transition disabled:opacity-50">
+                {submitting ? 'Assigning...' : 'Assign'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

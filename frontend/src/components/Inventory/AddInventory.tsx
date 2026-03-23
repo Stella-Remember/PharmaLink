@@ -1,5 +1,9 @@
 // src/components/Inventory/AddInventory.tsx
-import React, { useState } from 'react';
+// KEY FIX: The focus-stealing bug was caused by re-rendering the entire modal
+// on every keystroke because parent state changed. This version is self-contained
+// and uses local state only — no re-renders from parent during typing.
+
+import React, { useState, useCallback } from 'react';
 
 interface AddInventoryProps {
   isOpen: boolean;
@@ -7,313 +11,266 @@ interface AddInventoryProps {
   onSuccess: () => void;
 }
 
-const AddInventory: React.FC<AddInventoryProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    category: '',
-    batchNumber: '',
-    expiryDate: '',
-    quantity: '',
-    reorderLevel: '',
-    sellingPrice: '',
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+const CATEGORIES = [
+  'Analgesics', 'Antibiotics', 'Antimalarials', 'Antifungals',
+  'Antivirals', 'Antiparasitics', 'Cardiovascular', 'Diabetes',
+  'Respiratory', 'Gastrointestinal', 'Vitamins & Supplements',
+  'Dermatology', 'Ophthalmology', 'Psychiatric', 'Other'
+];
 
-  // Validation function
-  const validateForm = () => {
-    const errors: {[key: string]: string} = {};
-    
-    if (!formData.name.trim()) errors.name = 'Medicine name is required';
-    if (!formData.category) errors.category = 'Category is required';
-    if (!formData.batchNumber.trim()) errors.batchNumber = 'Batch number is required';
-    if (!formData.expiryDate) errors.expiryDate = 'Expiry date is required';
-    
-    // Check if expiry date is in the future
-    if (formData.expiryDate) {
-      const selectedDate = new Date(formData.expiryDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        errors.expiryDate = 'Expiry date must be in the future';
-      }
-    }
-    
-    // Validate quantity
-    if (!formData.quantity) {
-      errors.quantity = 'Quantity is required';
-    } else {
-      const qty = parseInt(formData.quantity);
-      if (isNaN(qty) || qty < 0) errors.quantity = 'Quantity must be a positive number';
-    }
-    
-    // Validate reorder level
-    if (!formData.reorderLevel) {
-      errors.reorderLevel = 'Reorder level is required';
-    } else {
-      const level = parseInt(formData.reorderLevel);
-      if (isNaN(level) || level < 0) errors.reorderLevel = 'Reorder level must be a positive number';
-    }
-    
-    // Validate price (MOST IMPORTANT - this fixes the "334fg" error)
-    if (!formData.sellingPrice) {
-      errors.sellingPrice = 'Price is required';
-    } else {
-      // Remove any non-numeric characters except decimal point
-      const cleanedPrice = formData.sellingPrice.replace(/[^0-9.]/g, '');
-      const price = parseFloat(cleanedPrice);
-      if (isNaN(price) || price <= 0) {
-        errors.sellingPrice = 'Please enter a valid price (numbers only)';
-      }
-    }
-    
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    
-    // Special handling for price field - allow numbers and decimal only
-    if (name === 'sellingPrice') {
-      // Only allow numbers and decimal point
-      const cleaned = value.replace(/[^0-9.]/g, '');
-      // Prevent multiple decimal points
-      const parts = cleaned.split('.');
-      if (parts.length > 2) {
-        return; // Ignore if multiple decimal points
-      }
-      setFormData({ ...formData, [name]: cleaned });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
-    
-    // Clear field error when user starts typing
-    if (fieldErrors[name]) {
-      setFieldErrors({ ...fieldErrors, [name]: '' });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate form first
-    if (!validateForm()) {
-      return;
-    }
-    
-    setIsLoading(true);
-    setError('');
-
-    // Clean and prepare data for backend
-    const inventoryData = {
-  medicineName: formData.name,
-  genericName: formData.name, // temporary until you add field
-  category: formData.category,
-  manufacturer: 'Unknown', // temporary required field
-  strength: 'N/A',
-  form: 'Tablet',
-  requiresPrescription: false,
-
-  batchNumber: formData.batchNumber,
-  expiryDate: formData.expiryDate,
-  quantity: parseInt(formData.quantity),
-  reorderLevel: parseInt(formData.reorderLevel),
-
-  unitPrice: parseFloat(formData.sellingPrice),     // required
-  sellingPrice: parseFloat(formData.sellingPrice),  // required
-
-  supplierId: null,
-  location: 'Main Store'
+const INIT = {
+  medicineName: '', genericName: '', medicineType: 'GENERIC', category: '',
+  manufacturer: '', strength: '', batchNumber: '', expiryDate: '',
+  quantity: '', reorderLevel: '', unitPrice: '',
 };
 
-    try {
-      const token = localStorage.getItem('token'); 
+// Use a stable form component that doesn't remount
+const AddInventoryForm: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({ onClose, onSuccess }) => {
+  const [form, setForm] = useState(INIT);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-const response = await fetch('http://localhost:3001/api/inventory', {  
-  method: 'POST',
-  headers: { 
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`   
-  },
-  body: JSON.stringify(inventoryData)
-});
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to add inventory');
-      }
-      
-      // Success
+  // Stable onChange that doesn't cause parent re-renders
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    setFieldErrors(prev => prev[name] ? { ...prev, [name]: '' } : prev);
+  }, []);
+
+  const setType = useCallback((t: string) => setForm(prev => ({ ...prev, medicineType: t })), []);
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!form.medicineName.trim()) e.medicineName = 'Required';
+    if (!form.category) e.category = 'Required';
+    if (!form.batchNumber.trim()) e.batchNumber = 'Required';
+    if (!form.expiryDate) e.expiryDate = 'Required';
+    if (!form.quantity || isNaN(+form.quantity) || +form.quantity < 0) e.quantity = 'Enter a valid number';
+    if (!form.reorderLevel || isNaN(+form.reorderLevel)) e.reorderLevel = 'Enter a valid number';
+    if (!form.unitPrice || isNaN(+form.unitPrice) || +form.unitPrice <= 0) e.unitPrice = 'Enter a valid price';
+    setFieldErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!validate()) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:3001/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          medicineName: form.medicineName.trim(),
+          genericName: form.genericName.trim() || form.medicineName.trim(),
+          medicineType: form.medicineType,
+          category: form.category,
+          manufacturer: form.manufacturer.trim() || 'Unknown',
+          strength: form.strength.trim() || 'N/A',
+          form: 'Tablet',
+          requiresPrescription: form.medicineType === 'PATENTED',
+          batchNumber: form.batchNumber.trim(),
+          expiryDate: form.expiryDate,
+          quantity: parseInt(form.quantity),
+          reorderLevel: parseInt(form.reorderLevel) || 10,
+          unitPrice: parseFloat(form.unitPrice),
+          sellingPrice: parseFloat(form.unitPrice),
+          supplierId: null,
+          location: 'Main Store',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || 'Failed to add medicine');
       onSuccess();
       onClose();
-      
     } catch (err: any) {
-      setError(err.message || 'Failed to add inventory item');
+      setError(err.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
+  // Shared input style
+  const inp = (name: string) =>
+    `w-full px-3 py-2.5 border rounded-xl text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+      fieldErrors[name]
+        ? 'border-red-400 bg-red-50 focus:ring-red-400'
+        : 'border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-400'
+    }`;
+
+  return (
+    <form onSubmit={handleSubmit} className="p-6 overflow-y-auto" style={{ maxHeight: '78vh' }}>
+      <div className="space-y-4">
+
+        {/* Medicine Type */}
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+            Medicine Type <span className="text-red-500">*</span>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { value: 'GENERIC', label: '🧬 Generic', desc: 'Standard, non-branded formula' },
+              { value: 'PATENTED', label: '® Patented', desc: 'Brand-name, proprietary' },
+            ].map(opt => (
+              <button key={opt.value} type="button" onClick={() => setType(opt.value)}
+                className={`text-left p-3 rounded-2xl border-2 transition-colors ${
+                  form.medicineType === opt.value
+                    ? opt.value === 'GENERIC'
+                      ? 'border-emerald-500 bg-emerald-50'
+                      : 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                }`}>
+                <div className="font-bold text-sm">{opt.label}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{opt.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Names */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+              Trade / Brand Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="medicineName"
+              type="text"
+              autoComplete="off"
+              placeholder="e.g. Panadol"
+              value={form.medicineName}
+              onChange={handleChange}
+              className={inp('medicineName')}
+            />
+            {fieldErrors.medicineName && <p className="text-red-500 text-xs mt-1">{fieldErrors.medicineName}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Generic Name</label>
+            <input
+              name="genericName"
+              type="text"
+              autoComplete="off"
+              placeholder="e.g. Paracetamol"
+              value={form.genericName}
+              onChange={handleChange}
+              className={inp('genericName')}
+            />
+          </div>
+        </div>
+
+        {/* Category */}
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+            Category <span className="text-red-500">*</span>
+          </label>
+          <select name="category" value={form.category} onChange={handleChange}
+            className={inp('category')}>
+            <option value="">Select category...</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          {fieldErrors.category && <p className="text-red-500 text-xs mt-1">{fieldErrors.category}</p>}
+        </div>
+
+        {/* Manufacturer + Strength */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Manufacturer</label>
+            <input name="manufacturer" type="text" autoComplete="off" placeholder="e.g. Cipla"
+              value={form.manufacturer} onChange={handleChange} className={inp('manufacturer')} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Strength</label>
+            <input name="strength" type="text" autoComplete="off" placeholder="e.g. 500mg"
+              value={form.strength} onChange={handleChange} className={inp('strength')} />
+          </div>
+        </div>
+
+        {/* Batch + Expiry */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+              Batch Number <span className="text-red-500">*</span>
+            </label>
+            <input name="batchNumber" type="text" autoComplete="off" placeholder="BT-2025-001"
+              value={form.batchNumber} onChange={handleChange} className={inp('batchNumber')} />
+            {fieldErrors.batchNumber && <p className="text-red-500 text-xs mt-1">{fieldErrors.batchNumber}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+              Expiry Date <span className="text-red-500">*</span>
+            </label>
+            <input name="expiryDate" type="date"
+              min={new Date().toISOString().split('T')[0]}
+              value={form.expiryDate} onChange={handleChange} className={inp('expiryDate')} />
+            {fieldErrors.expiryDate && <p className="text-red-500 text-xs mt-1">{fieldErrors.expiryDate}</p>}
+          </div>
+        </div>
+
+        {/* Qty + Reorder + Price */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { name: 'quantity', label: 'Quantity', placeholder: '200' },
+            { name: 'reorderLevel', label: 'Reorder Level', placeholder: '50' },
+            { name: 'unitPrice', label: 'Price (RWF)', placeholder: '1500' },
+          ].map(f => (
+            <div key={f.name}>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                {f.label} <span className="text-red-500">*</span>
+              </label>
+              <input
+                name={f.name}
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder={f.placeholder}
+                value={(form as any)[f.name]}
+                onChange={handleChange}
+                className={inp(f.name)}
+              />
+              {fieldErrors[f.name] && <p className="text-red-500 text-xs mt-1">{fieldErrors[f.name]}</p>}
+            </div>
+          ))}
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-xl">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-3 mt-6 pt-4 border-t border-gray-100">
+        <button type="button"
+          onClick={() => { onClose(); setError(''); setFieldErrors({}); }}
+          className="flex-1 py-3 border-2 border-gray-200 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 transition">
+          Cancel
+        </button>
+        <button type="submit" disabled={loading}
+          className="flex-[2] py-3 bg-gray-900 text-white rounded-2xl font-black hover:bg-gray-800 disabled:opacity-50 transition">
+          {loading ? '⏳ Adding...' : '+ Add Medicine'}
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// Modal wrapper — only mounts the form when open, preventing stale state issues
+const AddInventory: React.FC<AddInventoryProps> = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl max-w-md w-full p-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Add New Medicine</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {/* Medicine Name */}
-            <div>
-              <input
-                type="text"
-                name="name"
-                placeholder="Medicine Name *"
-                value={formData.name}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg ${
-                  fieldErrors.name ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {fieldErrors.name && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.name}</p>
-              )}
-            </div>
-
-            {/* Category */}
-            <div>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg ${
-                  fieldErrors.category ? 'border-red-500' : 'border-gray-300'
-                }`}
-              >
-                <option value="">Select Category *</option>
-                <option value="Analgesics">Analgesics</option>
-                <option value="Antibiotics">Antibiotics</option>
-                <option value="Antimalarials">Antimalarials</option>
-              </select>
-              {fieldErrors.category && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.category}</p>
-              )}
-            </div>
-
-            {/* Batch Number */}
-            <div>
-              <input
-                type="text"
-                name="batchNumber"
-                placeholder="Batch Number *"
-                value={formData.batchNumber}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg ${
-                  fieldErrors.batchNumber ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {fieldErrors.batchNumber && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.batchNumber}</p>
-              )}
-            </div>
-
-            {/* Expiry Date */}
-            <div>
-              <input
-                type="date"
-                name="expiryDate"
-                value={formData.expiryDate}
-                onChange={handleChange}
-                min={new Date().toISOString().split('T')[0]} // Can't select past dates
-                className={`w-full px-3 py-2 border rounded-lg ${
-                  fieldErrors.expiryDate ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {fieldErrors.expiryDate && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.expiryDate}</p>
-              )}
-            </div>
-
-            {/* Quantity */}
-            <div>
-              <input
-                type="text"
-                name="quantity"
-                placeholder="Quantity *"
-                value={formData.quantity}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg ${
-                  fieldErrors.quantity ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {fieldErrors.quantity && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.quantity}</p>
-              )}
-            </div>
-
-            {/* Reorder Level */}
-            <div>
-              <input
-                type="text"
-                name="reorderLevel"
-                placeholder="Reorder Level *"
-                value={formData.reorderLevel}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg ${
-                  fieldErrors.reorderLevel ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {fieldErrors.reorderLevel && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.reorderLevel}</p>
-              )}
-            </div>
-
-            {/* Selling Price - WITH VALIDATION */}
-            <div>
-              <input
-                type="text"
-                name="sellingPrice"
-                placeholder="Selling Price (RWF) *"
-                value={formData.sellingPrice}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg ${
-                  fieldErrors.sellingPrice ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {fieldErrors.sellingPrice && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.sellingPrice}</p>
-              )}
-              <p className="text-gray-400 text-xs mt-1">Numbers only (e.g., 500 or 500.50)</p>
-            </div>
-
-            {/* General Error */}
-            {error && (
-              <div className="bg-red-50 text-red-600 text-sm p-2 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            {/* Buttons */}
-            <div className="flex justify-end space-x-3 pt-4">
-              <button 
-                type="button" 
-                onClick={onClose} 
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                disabled={isLoading} 
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
-              >
-                {isLoading ? 'Adding...' : 'Add Medicine'}
-              </button>
-            </div>
-          </div>
-        </form>
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden">
+        <div className="bg-gray-950 text-white px-6 py-4">
+          <h2 className="text-lg font-black">Add New Medicine</h2>
+          <p className="text-gray-400 text-xs mt-0.5">Complete the form below to add to inventory</p>
+        </div>
+        {/* Key re-mounts the form fresh each time modal opens — kills focus bug */}
+        <AddInventoryForm key={Date.now()} onClose={onClose} onSuccess={onSuccess} />
       </div>
     </div>
   );

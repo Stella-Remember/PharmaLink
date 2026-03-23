@@ -6,11 +6,14 @@ import App from './App';
 import { theme } from './theme';
 import '@mantine/core/styles.css'; 
 import './index.css';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
      <MantineProvider theme={theme} defaultColorScheme="light">
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </MantineProvider>
   </React.StrictMode>
 );

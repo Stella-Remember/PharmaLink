@@ -2,6 +2,8 @@
 import api from './client';
 
 export interface Medicine {
+  strength: string;
+  medicineName: string;
   id: string;
   name: string;
   genericName?: string;

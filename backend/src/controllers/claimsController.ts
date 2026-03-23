@@ -1,138 +1,147 @@
+// backend/src/controllers/claimsController.ts
 import { Request, Response } from 'express'
 import { prisma } from '../utils/prisma'
 
+// GET /api/claims — returns all claims for the pharmacy (pharmacist) or all pharmacies (owner)
 export const getClaims = async (req: Request, res: Response) => {
   try {
-    const pharmacyId = req.user.pharmacyId
-    const { status } = req.query
+    const { pharmacyId, role, id: userId } = req.user
+    const { status, startDate, endDate, limit = 200 } = req.query
 
-    const where: any = { pharmacyId }
-    
-    if (status) {
-      where.status = status
+    let pharmacyIds: string[] = []
+
+    if (role === 'OWNER') {
+      // Owner sees all their pharmacies
+      const pharmacies = await prisma.pharmacy.findMany({
+        where: { ownerId: userId, isActive: true },
+        select: { id: true }
+      })
+      pharmacyIds = pharmacies.map(p => p.id)
+    } else {
+      if (!pharmacyId) return res.status(400).json({ error: 'No pharmacy associated' })
+      pharmacyIds = [pharmacyId]
+    }
+
+    if (pharmacyIds.length === 0) return res.json([])
+
+    const where: any = { pharmacyId: { in: pharmacyIds } }
+    if (status && status !== 'all') where.status = status
+    if (startDate) {
+      where.createdAt = { gte: new Date(startDate as string) }
+    }
+    if (endDate) {
+      const end = new Date(endDate as string)
+      end.setHours(23, 59, 59, 999)
+      where.createdAt = { ...where.createdAt, lte: end }
     }
 
     const claims = await prisma.claim.findMany({
       where,
       include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true
-          }
-        },
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        pharmacy: { select: { id: true, name: true } },
         inventory: {
           include: {
-            medicine: true
+            medicine: { select: { name: true, genericName: true } }
           }
         }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' },
+      take: Number(limit)
     })
 
     res.json(claims)
   } catch (error) {
+    console.error('Get claims error:', error)
     res.status(500).json({ error: 'Failed to fetch claims' })
   }
 }
 
-export const createClaim = async (req: Request, res: Response) => {
-  try {
-    const pharmacyId = req.user.pharmacyId
-    const userId = req.user.id
-    const { inventoryId, claimType, description, quantity, amount } = req.body
-
-    // Generate claim number
-    const claimNumber = `CLM-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-
-    const claim = await prisma.claim.create({
-      data: {
-        claimNumber,
-        pharmacyId,
-        userId,
-        inventoryId,
-        claimType,
-        description,
-        quantity,
-        amount,
-        status: 'PENDING'
-      },
-      include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true
-          }
-        },
-        inventory: {
-          include: {
-            medicine: true
-          }
-        }
-      }
-    })
-
-    res.status(201).json(claim)
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create claim' })
-  }
-}
-
-export const updateClaimStatus = async (req: Request, res: Response) => {
+// GET /api/claims/:id — single claim detail
+export const getClaimById = async (req: Request, res: Response) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
-    const { status, notes } = req.body
-    const approverId = req.user.id
+    const { pharmacyId, role, id: userId } = req.user
 
-    const claim = await prisma.claim.update({
+    const claim = await prisma.claim.findUnique({
       where: { id },
-      data: {
-        status,
-        notes,
-        approvedBy: approverId,
-        approvedAt: new Date()
-      },
       include: {
-        user: true,
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        pharmacy: { select: { id: true, name: true, address: true, phone: true, licenseNumber: true } },
         inventory: {
-          include: { medicine: true }
+          include: {
+            medicine: { select: { name: true, genericName: true, category: true, strength: true } }
+          }
         }
       }
     })
 
-    // If claim is approved and involves inventory, adjust stock
-    if (status === 'APPROVED' && claim.inventoryId) {
-      await prisma.inventory.update({
-        where: { id: claim.inventoryId! },
-        data: {
-          quantity: {
-            decrement: claim.quantity
-          }
-        }
-      })
+    if (!claim) return res.status(404).json({ error: 'Claim not found' })
+
+    // Access check
+    if (role === 'OWNER') {
+      const pharmacy = await prisma.pharmacy.findFirst({ where: { id: claim.pharmacyId, ownerId: userId } })
+      if (!pharmacy) return res.status(403).json({ error: 'Access denied' })
+    } else {
+      if (claim.pharmacyId !== pharmacyId) return res.status(403).json({ error: 'Access denied' })
     }
 
     res.json(claim)
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update claim status' })
+    res.status(500).json({ error: 'Failed to fetch claim' })
   }
 }
 
-export const getPendingClaimsCount = async (req: Request, res: Response) => {
+// PUT /api/claims/:id/status — update claim status (owner only)
+export const updateClaimStatus = async (req: Request, res: Response) => {
   try {
-    const pharmacyId = req.user.pharmacyId
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
+    const { status, notes: additionalNotes } = req.body
+    const { role, id: userId } = req.user
 
-    const count = await prisma.claim.count({
-      where: {
-        pharmacyId,
-        status: 'PENDING'
+    const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'PROCESSED']
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` })
+    }
+
+    // Check the claim exists and belongs to owner
+    const existing = await prisma.claim.findUnique({ where: { id } })
+    if (!existing) return res.status(404).json({ error: 'Claim not found' })
+
+    if (role === 'OWNER') {
+      const pharmacy = await prisma.pharmacy.findFirst({ where: { id: existing.pharmacyId, ownerId: userId } })
+      if (!pharmacy) return res.status(403).json({ error: 'Access denied' })
+    }
+
+    // Merge status update into notes
+    let existingNotes: any = {}
+    if (existing.notes) {
+      try { existingNotes = JSON.parse(existing.notes) } catch {}
+    }
+
+    const updatedNotes = JSON.stringify({
+      ...existingNotes,
+      statusHistory: [
+        ...(existingNotes.statusHistory || []),
+        { status, updatedBy: userId, updatedAt: new Date().toISOString(), notes: additionalNotes }
+      ]
+    })
+
+    const updated = await prisma.claim.update({
+      where: { id },
+      data: {
+        status,
+        notes: updatedNotes,
+        ...(status === 'PROCESSED' && { processedAt: new Date() } as any)
+      },
+      include: {
+        user: { select: { firstName: true, lastName: true } }
       }
     })
 
-    res.json({ count })
+    res.json(updated)
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch pending claims count' })
+    console.error('Update claim status error:', error)
+    res.status(500).json({ error: 'Failed to update claim status' })
   }
 }
