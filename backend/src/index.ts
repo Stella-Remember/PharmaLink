@@ -134,11 +134,12 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 })
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 PharmaLink backend running on http://localhost:${PORT}`)
-  console.log(`📚 API documentation available at http://localhost:${PORT}/`)
-  console.log(`📘 Swagger UI: http://localhost:${PORT}/api-docs`)
-  console.log(`📖 Docs redirect: http://localhost:${PORT}/docs`)
+app.listen(Number(process.env.PORT) || 3001, '0.0.0.0', () => {
+
+  console.log(`🚀 PharmaLink backend running on port${PORT}`)
+  console.log(`📚 API documentation available /`)
+  console.log(`📘 Swagger UI: /api-docs`)
+  console.log(`📖 Docs redirect: /docs`)
   console.log(`💾 Database: Connected`)
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`)
 })
