@@ -79,7 +79,6 @@ const OTPModal: React.FC<{
   const [verifying, setVerifying] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const DEMO_OTP = '123456';
 
   useEffect(() => {
     if (isOpen && !sent) sendOTP();
@@ -94,9 +93,19 @@ const OTPModal: React.FC<{
 
   const sendOTP = async () => {
     setSending(true); setError('');
-    await new Promise(r => setTimeout(r, 1200));
-    setSent(true); setSending(false); setCountdown(60);
-    setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    try {
+      await fetch('https://pharmalink-production.up.railway.app/api/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      setSent(true); setCountdown(60);
+      setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    } catch {
+      setError('Failed to send OTP. Try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleInput = (i: number, val: string) => {
@@ -113,15 +122,24 @@ const OTPModal: React.FC<{
 
   const verify = async (code: string) => {
     setVerifying(true); setError('');
-    await new Promise(r => setTimeout(r, 800));
-    if (code === DEMO_OTP) {
-      onVerified();
-    } else {
-      setError('Incorrect code. Try again.');
-      setOtp(['', '', '', '', '', '']);
-      inputRefs.current[0]?.focus();
+    try {
+      const res = await fetch('https://pharmalink-production.up.railway.app/api/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code })
+      });
+      if (res.ok) {
+        onVerified();
+      } else {
+        setError('Incorrect code. Try again.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
+    } catch {
+      setError('Verification failed. Try again.');
+    } finally {
+      setVerifying(false);
     }
-    setVerifying(false);
   };
 
   const maskedPhone = phone.replace(/(\+\d{3})\d{6}(\d{3})/, '$1••••••$2');
@@ -198,7 +216,6 @@ const OTPModal: React.FC<{
           </button>
         </div>
 
-        <p style={{textAlign:'center',fontSize:11,color:'#d1d5db',marginTop:14}}>Demo code: 123456</p>
 
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
@@ -636,12 +653,19 @@ const POS: React.FC = () => {
     setProcessing(true); setError('');
     try {
       const res = await salesAPI.create({
-        items: cart.map(c => ({ medicineId: c.id, quantity: c.quantity, unitPrice: c.unitPrice })),
-        totalAmount: total,
-        paymentMethod: paymentLines[0]?.method || 'CASH',
-        paymentLines,
-        insuranceDetails: insDetails || null,
-      });
+  items: cart.map(c => ({ inventoryId: c.id, quantity: c.quantity, unitPrice: c.unitPrice })),
+  totalAmount: total,
+  paymentMethod: paymentLines[0]?.method || 'CASH',
+  paymentLines,
+  // Spread insurance fields flat — matches what backend expects
+  ...(insDetails ? {
+    patientName: insDetails.patientName,
+    patientId: insDetails.policyNumber,
+    insuranceProvider: insDetails.planName,
+    policyNumber: insDetails.policyNumber,
+    insuranceCoveredAmount: insDetails.coveredAmount,
+  } : {})
+});
 
       const receipt = {
         invoiceNumber: res.data?.invoiceNumber || `INV-${Date.now()}`,
