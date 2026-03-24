@@ -10,15 +10,21 @@ const otpStore = new Map<string, { code: string; expires: number }>();
 
 export const sendOTP = async (phone: string): Promise<void> => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
+  const expires = Date.now() + 5 * 60 * 1000;
   
   otpStore.set(phone, { code, expires });
 
-  await client.messages.create({
-    body: `Your PharmaLink verification code is: ${code}. Valid for 5 minutes.`,
-    from: process.env.TWILIO_PHONE_NUMBER!,
-    to: phone
-  });
+  try {
+    const message = await client.messages.create({
+      body: `Your PharmaLink verification code is: ${code}. Valid for 5 minutes.`,
+      from: process.env.TWILIO_PHONE_NUMBER!,
+      to: phone
+    });
+    console.log('✅ OTP sent, SID:', message.sid);
+  } catch (err: any) {
+    console.error('❌ Twilio error:', err.message, err.code);
+    throw err; // re-throw so route returns 500 with message
+  }
 };
 
 export const verifyOTP = (phone: string, code: string): boolean => {

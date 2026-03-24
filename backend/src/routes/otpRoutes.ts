@@ -10,7 +10,8 @@ router.post('/send', async (req, res) => {
     await sendOTP(phone);
     res.json({ message: 'OTP sent' });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    console.error('OTP send failed:', err);
+    res.status(500).json({ error: err.message || 'Failed to send OTP' });
   }
 });
 
