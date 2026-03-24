@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-   "dev": "tsx watch src/index.ts",
-   "build": "prisma generate && tsc",
-   "start": "node dist/index.js",
-   "deploy": "npm run build && npx prisma migrate deploy && npm start",
-   "prisma:generate": "prisma generate",
-   "prisma:migrate": "prisma migrate dev",
-   "prisma:studio": "prisma studio"
+    "dev": "tsx watch src/index.ts",
+    "build": "prisma generate && tsc",
+    "start": "node dist/index.js",
+    "deploy": "npm run build && npx prisma migrate deploy && npm start",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
@@ -19,7 +19,8 @@
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "twilio": "^5.13.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { createSale, getSales, getTodaySales } from '../controllers/salesController'
+import { createSale, getSales, getSalesReport, getTodaySales } from '../controllers/salesController'
 import { authenticate, requirePharmacist } from '../middleware/auth'
 
 const router = Router()
@@ -10,5 +10,5 @@ router.use(requirePharmacist)
 router.post('/', createSale)
 router.get('/', getSales)
 router.get('/today', getTodaySales)
-
+router.get('/report', getSalesReport)
 export default router
