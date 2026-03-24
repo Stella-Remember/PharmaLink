@@ -1,7 +1,7 @@
-// src/components/Sales/POS.tsx
+/// src/components/Sales/POS.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { inventoryAPI } from '../../api/inventory';
-import { salesAPI } from '../../api/sales'
+import { salesAPI } from '../../api/sales';
 
 
 // ── Insurance providers — one fixed rate each ────────────────────────────────
@@ -22,7 +22,7 @@ interface CartItem { id: string; medicineName: string; unitPrice: number; quanti
 interface PaymentLine { method: 'CASH' | 'MOMO' | 'CARD' | 'INSURANCE'; amount: number; }
 interface InsuranceDetails {
   providerId: string; planCode: string; planName: string;
-  patientName: string; policyNumber: string;
+  patientName: string; policyNumber: string; phoneNumber: string; // Added phoneNumber
   coveragePercent: number; coveredAmount: number; patientCopay: number;
 }
 
@@ -53,6 +53,7 @@ ${ins ? `<div class="claim">
 <div class="divider"></div>
 <div class="row"><span>Patient:</span><span class="bold">${ins.patientName}</span></div>
 <div class="row"><span>Policy #:</span><span>${ins.policyNumber}</span></div>
+<div class="row"><span>Phone:</span><span>${ins.phoneNumber}</span></div>
 <div class="divider"></div>
 <div class="row"><span>Total Bill:</span><span>${data.total.toLocaleString()} RWF</span></div>
 <div class="row"><span>Insurance (${ins.coveragePercent}%):</span><span class="bold">${ins.coveredAmount.toLocaleString()} RWF</span></div>
@@ -81,8 +82,10 @@ const OTPModal: React.FC<{
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    if (isOpen && !sent) sendOTP();
-  }, [isOpen]);
+    if (isOpen && !sent && phone) {
+      sendOTP();
+    }
+  }, [isOpen, phone]);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -92,17 +95,31 @@ const OTPModal: React.FC<{
   }, [countdown]);
 
   const sendOTP = async () => {
-    setSending(true); setError('');
+    if (!phone) {
+      setError('Phone number is required');
+      return;
+    }
+    
+    setSending(true); 
+    setError('');
     try {
-      await fetch('https://pharmalink-production.up.railway.app/api/otp/send', {
+      const response = await fetch('https://pharmalink-production.up.railway.app/api/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone })
       });
-      setSent(true); setCountdown(60);
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+      
+      setSent(true); 
+      setCountdown(60);
       setTimeout(() => inputRefs.current[0]?.focus(), 100);
-    } catch {
-      setError('Failed to send OTP. Try again.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to send OTP. Try again.');
     } finally {
       setSending(false);
     }
@@ -121,30 +138,41 @@ const OTPModal: React.FC<{
   };
 
   const verify = async (code: string) => {
-    setVerifying(true); setError('');
+    setVerifying(true); 
+    setError('');
     try {
-      const res = await fetch('https://pharmalink-production.up.railway.app/api/otp/verify', {
+      const response = await fetch('https://pharmalink-production.up.railway.app/api/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, code })
       });
-      if (res.ok) {
+      
+      const data = await response.json();
+      
+      if (response.ok) {
         onVerified();
       } else {
-        setError('Incorrect code. Try again.');
+        setError(data.error || 'Incorrect code. Try again.');
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
-    } catch {
+    } catch (err: any) {
       setError('Verification failed. Try again.');
     } finally {
       setVerifying(false);
     }
   };
 
-  const maskedPhone = phone.replace(/(\+\d{3})\d{6}(\d{3})/, '$1••••••$2');
+  const formatPhoneNumber = (phone: string) => {
+    // Format phone for display (e.g., +250788XXXXXX -> +250****XXXX)
+    if (phone.length <= 7) return phone;
+    const start = phone.slice(0, 4);
+    const end = phone.slice(-4);
+    return `${start}****${end}`;
+  };
 
   if (!isOpen) return null;
+  
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:70}}>
       <div style={{background:'#fff',borderRadius:16,padding:32,width:360,boxShadow:'0 20px 60px rgba(0,0,0,0.15)'}}>
@@ -159,7 +187,7 @@ const OTPModal: React.FC<{
 
         <h3 style={{textAlign:'center',fontSize:18,fontWeight:700,color:'#1a2235',margin:'0 0 6px'}}>SMS Verification</h3>
         <p style={{textAlign:'center',fontSize:13,color:'#6b7280',margin:'0 0 24px',lineHeight:1.5}}>
-          {sending ? 'Sending code…' : `Code sent to ${maskedPhone}`}
+          {sending ? 'Sending code…' : `Code sent to ${formatPhoneNumber(phone)}`}
         </p>
 
         {/* OTP inputs */}
@@ -216,7 +244,6 @@ const OTPModal: React.FC<{
           </button>
         </div>
 
-
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     </div>
@@ -234,14 +261,60 @@ const InsuranceModal: React.FC<{
   const [selectedProvider, setSelectedProvider] = useState<typeof PROVIDERS[0] | null>(null);
   const [policyNumber, setPolicyNumber] = useState('');
   const [patientName, setPatientName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [otpOpen, setOtpOpen] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
-    if (isOpen) { setStep('provider'); setSelectedProvider(null); setPolicyNumber(''); setPatientName(''); }
+    if (isOpen) { 
+      setStep('provider'); 
+      setSelectedProvider(null); 
+      setPolicyNumber(''); 
+      setPatientName('');
+      setPhoneNumber('');
+      setPhoneError('');
+    }
   }, [isOpen]);
 
   const covered = selectedProvider ? Math.round(total * selectedProvider.coverage / 100) : 0;
   const copay = total - covered;
+
+  // Phone number validation for Rwanda
+  const validatePhoneNumber = (phone: string): boolean => {
+    // Accept formats: 0788XXXXXX, 0788-XXXXXX, +250788XXXXXX, 250788XXXXXX
+    const cleanPhone = phone.replace(/[-\s]/g, '');
+    const phoneRegex = /^(07[238]\d{7}|\+2507[238]\d{7}|2507[238]\d{7})$/;
+    return phoneRegex.test(cleanPhone);
+  };
+
+  const formatPhoneForApi = (phone: string): string => {
+    let cleanPhone = phone.replace(/[-\s]/g, '');
+    // If starts with 07, add +250
+    if (cleanPhone.startsWith('07')) {
+      cleanPhone = '+250' + cleanPhone.slice(1);
+    }
+    // If starts with 250, add +
+    else if (cleanPhone.startsWith('250')) {
+      cleanPhone = '+' + cleanPhone;
+    }
+    return cleanPhone;
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhoneNumber(value);
+    if (value && !validatePhoneNumber(value)) {
+      setPhoneError('Enter valid Rwandan phone (e.g., 0788XXXXXX or +250788XXXXXX)');
+    } else {
+      setPhoneError('');
+    }
+  };
+
+  const handleSendOTP = () => {
+    if (!patientName || !policyNumber || !phoneNumber || !validatePhoneNumber(phoneNumber)) {
+      return;
+    }
+    setOtpOpen(true);
+  };
 
   if (!isOpen) return null;
 
@@ -252,6 +325,7 @@ const InsuranceModal: React.FC<{
     body: { padding:'24px' },
     label: { fontSize:11,fontWeight:700,textTransform:'uppercase' as const,letterSpacing:1,color:'#6b7280',display:'block',marginBottom:6 },
     input: { width:'100%',padding:'11px 14px',border:'1.5px solid #E5E7EB',borderRadius:10,fontSize:14,color:'#1a2235',outline:'none',boxSizing:'border-box' as const,background:'#FAFAFA' },
+    inputError: { width:'100%',padding:'11px 14px',border:'1.5px solid #EF4444',borderRadius:10,fontSize:14,color:'#1a2235',outline:'none',boxSizing:'border-box' as const,background:'#FAFAFA' },
     btn: { padding:'12px 20px',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',transition:'all 0.15s',border:'none' },
   };
 
@@ -321,7 +395,7 @@ const InsuranceModal: React.FC<{
             </div>
           )}
 
-          {/* STEP 2: Patient details — simple inputs, no lookup */}
+          {/* STEP 2: Patient details with phone number */}
           {step === 'patient' && (
             <div>
               <button onClick={() => setStep('provider')} style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#2A9D8F',background:'none',border:'none',cursor:'pointer',marginBottom:16,fontWeight:600}}>
@@ -339,7 +413,7 @@ const InsuranceModal: React.FC<{
                 />
               </div>
 
-              <div style={{marginBottom:20}}>
+              <div style={{marginBottom:14}}>
                 <label style={s.label}>Patient Full Name *</label>
                 <input
                   style={s.input}
@@ -347,6 +421,24 @@ const InsuranceModal: React.FC<{
                   placeholder="Full name as on insurance card"
                   onChange={e => setPatientName(e.target.value)}
                 />
+              </div>
+
+              <div style={{marginBottom:20}}>
+                <label style={s.label}>Phone Number *</label>
+                <input
+                  style={phoneError ? s.inputError : s.input}
+                  value={phoneNumber}
+                  placeholder="e.g., 0788XXXXXX or +250788XXXXXX"
+                  onChange={e => handlePhoneChange(e.target.value)}
+                />
+                {phoneError && (
+                  <p style={{color: '#EF4444', fontSize: 11, marginTop: 4}}>
+                    {phoneError}
+                  </p>
+                )}
+                <p style={{color: '#9CA3AF', fontSize: 10, marginTop: 4}}>
+                  We'll send a verification code to this number
+                </p>
               </div>
 
               {/* Coverage summary */}
@@ -368,9 +460,9 @@ const InsuranceModal: React.FC<{
               <div style={{display:'flex',gap:10}}>
                 <button onClick={() => setStep('provider')} style={{...s.btn,flex:1,background:'#F3F4F6',color:'#6b7280'}}>Back</button>
                 <button
-                  onClick={() => patientName && policyNumber && setOtpOpen(true)}
-                  disabled={!patientName || !policyNumber}
-                  style={{...s.btn,flex:2,background: patientName && policyNumber ? '#2A9D8F' : '#E5E7EB',color: patientName && policyNumber ? '#fff' : '#9CA3AF',cursor: patientName && policyNumber ? 'pointer' : 'not-allowed'}}>
+                  onClick={handleSendOTP}
+                  disabled={!patientName || !policyNumber || !phoneNumber || !!phoneError}
+                  style={{...s.btn,flex:2,background: patientName && policyNumber && phoneNumber && !phoneError ? '#2A9D8F' : '#E5E7EB',color: patientName && policyNumber && phoneNumber && !phoneError ? '#fff' : '#9CA3AF',cursor: patientName && policyNumber && phoneNumber && !phoneError ? 'pointer' : 'not-allowed'}}>
                   Send OTP & Confirm
                 </button>
               </div>
@@ -381,7 +473,7 @@ const InsuranceModal: React.FC<{
 
       <OTPModal
         isOpen={otpOpen}
-        phone="+250700000000"
+        phone={formatPhoneForApi(phoneNumber)}
         onVerified={() => {
           setOtpOpen(false);
           onComplete({
@@ -390,6 +482,7 @@ const InsuranceModal: React.FC<{
             planName: selectedProvider!.name,
             patientName,
             policyNumber,
+            phoneNumber: formatPhoneForApi(phoneNumber),
             coveragePercent: selectedProvider!.coverage,
             coveredAmount: covered,
             patientCopay: copay,
@@ -404,7 +497,6 @@ const InsuranceModal: React.FC<{
 
 // ── Payment Modal ────────────────────────────────────────────────────────────
 const METHODS = ['CASH', 'MOMO', 'CARD', 'INSURANCE'] as const;
-
 
 const PaymentModal: React.FC<{
   isOpen: boolean; onClose: () => void;
@@ -533,6 +625,7 @@ const PaymentModal: React.FC<{
                       <div style={{fontSize:12,color:'#2A9D8F',fontWeight:700,letterSpacing:0.5}}>{insDetails.planName}</div>
                       <div style={{fontSize:18,fontWeight:800,color:'#1a2235',marginTop:4}}>{insDetails.patientName}</div>
                       <div style={{fontSize:12,color:'#6b7280',marginTop:2}}>Policy: {insDetails.policyNumber}</div>
+                      <div style={{fontSize:12,color:'#6b7280',marginTop:2}}>Phone: {insDetails.phoneNumber}</div>
                     </div>
                     <button onClick={() => { setInsDetails(null); setInsOpen(true); }}
                       style={{fontSize:12,color:'#2A9D8F',background:'none',border:'1.5px solid #2A9D8F',borderRadius:8,padding:'6px 12px',cursor:'pointer',fontWeight:600}}>
@@ -593,272 +686,3 @@ const PaymentModal: React.FC<{
     </div>
   );
 };
-
-// ── Main POS ─────────────────────────────────────────────────────────────────
-const POS: React.FC = () => {
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [search, setSearch] = useState('');
-  const [catFilter, setCatFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [payOpen, setPayOpen] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState('');
-  const [lastReceipt, setLastReceipt] = useState<any>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { fetchInv(); searchRef.current?.focus(); }, []);
-
-  const fetchInv = async () => {
-    try {
-      const r = await inventoryAPI.getAll();
-      setInventory(Array.isArray(r.data) ? r.data : []);
-    } catch { setError('Failed to load inventory'); }
-  };
-
-  const getName = (i: InventoryItem) => i.medicineName || i.name || 'Unknown';
-  const getPrice = (i: InventoryItem) => i.sellingPrice || i.unitPrice || 0;
-  const cats = [...new Set(inventory.map(i => i.category).filter(Boolean))];
-
-  const filtered = inventory.filter(i => {
-    const n = getName(i).toLowerCase();
-    return n.includes(search.toLowerCase())
-      && (catFilter === 'all' || i.category === catFilter)
-      && (typeFilter === 'all' || (i.medicineType || 'GENERIC') === typeFilter)
-      && i.quantity > 0;
-  });
-
-  const addToCart = (item: InventoryItem) => {
-    const ex = cart.find(c => c.id === item.id);
-    if ((ex?.quantity || 0) + 1 > item.quantity) { setError(`Only ${item.quantity} in stock`); return; }
-    setError('');
-    if (ex) {
-      setCart(cart.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1, total: (c.quantity + 1) * c.unitPrice } : c));
-    } else {
-      setCart([...cart, { id: item.id, medicineName: getName(item), unitPrice: getPrice(item), quantity: 1, total: getPrice(item) }]);
-    }
-  };
-
-  const updateQty = (id: string, qty: number) => {
-    if (qty < 1) { setCart(cart.filter(c => c.id !== id)); return; }
-    const inv = inventory.find(i => i.id === id);
-    if (inv && qty > inv.quantity) { setError(`Max: ${inv.quantity}`); return; }
-    setError('');
-    setCart(cart.map(c => c.id === id ? { ...c, quantity: qty, total: qty * c.unitPrice } : c));
-  };
-
-  const total = cart.reduce((s, c) => s + c.total, 0);
-
-  const handlePay = async (paymentLines: PaymentLine[], insDetails?: InsuranceDetails) => {
-    setProcessing(true); setError('');
-    try {
-      const res = await salesAPI.create({
-  items: cart.map(c => ({ inventoryId: c.id, quantity: c.quantity, unitPrice: c.unitPrice })),
-  totalAmount: total,
-  paymentMethod: paymentLines[0]?.method || 'CASH',
-  paymentLines,
-  // Spread insurance fields flat — matches what backend expects
-  ...(insDetails ? {
-    patientName: insDetails.patientName,
-    patientId: insDetails.policyNumber,
-    insuranceProvider: insDetails.planName,
-    policyNumber: insDetails.policyNumber,
-    insuranceCoveredAmount: insDetails.coveredAmount,
-  } : {})
-});
-
-      const receipt = {
-        invoiceNumber: res.data?.invoiceNumber || `INV-${Date.now()}`,
-        items: cart, total, paymentLines,
-        pharmacist: (() => { const u = JSON.parse(localStorage.getItem('user') || '{}'); return `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Pharmacist'; })(),
-        insurance: insDetails,
-        pharmacyName: JSON.parse(localStorage.getItem('pharmacy') || '{}').name || 'PharmaLink',
-      };
-      setLastReceipt(receipt);
-      setCart([]); setPayOpen(false); fetchInv();
-      setTimeout(() => printReceipt(receipt), 300);
-    } catch (err: any) {
-      setError(err.message || 'Sale failed');
-    } finally { setProcessing(false); }
-  };
-
-  // ── Styles ──────────────────────────────────────────────────────────────────
-  const bg = '#F4F6F9';
-  const white = '#ffffff';
-  const border = '#E5E7EB';
-  const text = '#1a2235';
-  const muted = '#6b7280';
-  const green = '#2A9D8F';
-  const navy = '#1a2235';
-
-  return (
-    <div style={{display:'flex',height:'100vh',overflow:'hidden',background:bg,fontFamily:"'Inter',-apple-system,sans-serif"}}>
-
-      {/* ── Left: Drug Grid ── */}
-      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-
-        {/* Topbar */}
-        <div style={{background:white,borderBottom:`1px solid ${border}`,padding:'12px 20px',display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
-          <input
-            ref={searchRef}
-            type="text"
-            placeholder="🔍  Search medicines..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{flex:1,minWidth:180,padding:'10px 16px',border:`1.5px solid ${border}`,borderRadius:12,fontSize:14,color:text,outline:'none',background:'#FAFAFA'}}
-          />
-          <select
-            value={catFilter}
-            onChange={e => setCatFilter(e.target.value)}
-            style={{padding:'10px 14px',border:`1.5px solid ${border}`,borderRadius:12,fontSize:13,color:text,background:white,outline:'none'}}
-          >
-            <option value="all">All Categories</option>
-            {cats.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <div style={{display:'flex',borderRadius:12,overflow:'hidden',border:`1.5px solid ${border}`}}>
-            {[['all','All'],['GENERIC','Generic'],['PATENTED','Patent']].map(([v,l]) => (
-              <button key={v} onClick={() => setTypeFilter(v)}
-                style={{padding:'9px 16px',fontSize:13,fontWeight:600,background: typeFilter===v ? navy : white,color: typeFilter===v ? '#fff' : muted,border:'none',cursor:'pointer',transition:'all 0.15s'}}>
-                {l}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {error && (
-          <div style={{background:'#FEF3C7',borderBottom:'1px solid #FDE68A',color:'#92400E',padding:'10px 20px',fontSize:13,display:'flex',justifyContent:'space-between'}}>
-            <span>{error}</span>
-            <button onClick={() => setError('')} style={{fontWeight:700,background:'none',border:'none',cursor:'pointer',color:'#92400E'}}>×</button>
-          </div>
-        )}
-
-        {/* Grid */}
-        <div style={{flex:1,overflowY:'auto',padding:'20px'}}>
-          {filtered.length === 0 ? (
-            <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',color:'#CBD5E1'}}>
-              
-              <div style={{fontSize:14}}>No medicines found</div>
-            </div>
-          ) : (
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(175px,1fr))',gap:12}}>
-              {filtered.map(item => {
-                const inCart = cart.find(c => c.id === item.id);
-                const isPatented = (item.medicineType || 'GENERIC') === 'PATENTED';
-                const lowStock = item.quantity <= 10;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => addToCart(item)}
-                    style={{
-                      textAlign:'left',padding:'14px',borderRadius:14,
-                      border:`2px solid ${inCart ? green : border}`,
-                      background: inCart ? '#EBF8F5' : white,
-                      cursor:'pointer',transition:'all 0.15s',
-                      boxShadow: inCart ? `0 0 0 3px rgba(42,157,143,0.12)` : '0 1px 3px rgba(0,0,0,0.06)',
-                    }}
-                  >
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
-                      <span style={{fontSize:11,padding:'3px 9px',borderRadius:20,fontWeight:700,background: isPatented ? '#EEF2FF' : '#E0FDF4',color: isPatented ? '#6366F1' : '#059669'}}>
-                        {isPatented ? 'Patent' : 'Generic'}
-                      </span>
-                      {inCart && (
-                        <span style={{fontSize:12,fontWeight:800,background:green,color:'#fff',padding:'2px 8px',borderRadius:20}}>×{inCart.quantity}</span>
-                      )}
-                    </div>
-                    <div style={{fontWeight:700,fontSize:14,color:text,lineHeight:1.3,marginBottom:2}}>{getName(item)}</div>
-                    {item.category && <div style={{fontSize:11,color:muted,marginBottom:8}}>{item.category}</div>}
-                    <div style={{fontWeight:800,fontSize:15,color:navy}}>{getPrice(item).toLocaleString()} <span style={{fontSize:11,fontWeight:400,color:muted}}>RWF</span></div>
-                    <div style={{fontSize:11,marginTop:4,color: lowStock ? '#F59E0B' : '#CBD5E1',fontWeight: lowStock ? 700 : 400}}>
-                      {lowStock ? '⚠ ' : ''}Stock: {item.quantity}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Right: Cart ── */}
-      <div style={{width:300,flexShrink:0,display:'flex',flexDirection:'column',borderLeft:`1px solid ${border}`,background:white}}>
-        <div style={{padding:'16px 18px',background:navy,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div>
-            <div style={{fontWeight:700,fontSize:15,color:'#fff'}}>Current Sale</div>
-            <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginTop:2}}>{cart.length} item(s)</div>
-          </div>
-          {cart.length > 0 && (
-            <button onClick={() => setCart([])}
-              style={{fontSize:11,color:'#F87171',border:'1px solid rgba(248,113,113,0.3)',padding:'5px 10px',borderRadius:8,background:'none',cursor:'pointer',fontWeight:600}}>
-              Clear all
-            </button>
-          )}
-        </div>
-
-        <div style={{flex:1,overflowY:'auto',padding:'12px'}}>
-          {cart.length === 0 ? (
-            <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',color:'#CBD5E1'}}>
-              
-              <div style={{fontSize:13}}>Cart is empty</div>
-            </div>
-          ) : cart.map(item => (
-            <div key={item.id} style={{padding:'12px',border:`1px solid ${border}`,borderRadius:12,marginBottom:8,background:'#FAFAFA'}}>
-              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
-                <span style={{fontSize:13,fontWeight:700,color:text,flex:1,marginRight:8,lineHeight:1.3}}>{item.medicineName}</span>
-                <button onClick={() => setCart(cart.filter(c => c.id !== item.id))}
-                  style={{color:'#CBD5E1',background:'none',border:'none',cursor:'pointer',fontSize:18,lineHeight:1,padding:0}}>×</button>
-              </div>
-              <div style={{fontSize:11,color:muted,marginBottom:8}}>{item.unitPrice.toLocaleString()} RWF each</div>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <div style={{display:'flex',border:`1px solid ${border}`,borderRadius:8,overflow:'hidden'}}>
-                  <button onClick={() => updateQty(item.id, item.quantity - 1)}
-                    style={{width:32,height:32,fontWeight:700,fontSize:16,border:'none',background:'#F3F4F6',color:muted,cursor:'pointer'}}>−</button>
-                  <span style={{padding:'0 12px',display:'flex',alignItems:'center',fontSize:14,fontWeight:700,color:text}}>{item.quantity}</span>
-                  <button onClick={() => updateQty(item.id, item.quantity + 1)}
-                    style={{width:32,height:32,fontWeight:700,fontSize:16,border:'none',background:'#F3F4F6',color:muted,cursor:'pointer'}}>+</button>
-                </div>
-                <span style={{fontWeight:800,fontSize:14,color:text}}>{item.total.toLocaleString()} <span style={{fontSize:11,fontWeight:400,color:muted}}>RWF</span></span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{borderTop:`1px solid ${border}`,padding:'16px 18px',background:white}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
-            <span style={{fontSize:14,color:muted}}>Total</span>
-            <div>
-              <span style={{fontSize:26,fontWeight:800,color:text}}>{total.toLocaleString()}</span>
-              <span style={{fontSize:13,color:muted,marginLeft:4}}>RWF</span>
-            </div>
-          </div>
-          <button
-            onClick={() => cart.length > 0 && setPayOpen(true)}
-            disabled={cart.length === 0}
-            style={{width:'100%',padding:'14px',background: cart.length > 0 ? green : '#E5E7EB',color: cart.length > 0 ? '#fff' : '#9CA3AF',border:'none',borderRadius:12,fontWeight:800,fontSize:15,cursor: cart.length > 0 ? 'pointer' : 'not-allowed',transition:'all 0.15s',boxShadow: cart.length > 0 ? '0 4px 14px rgba(42,157,143,0.3)' : 'none'}}>
-            {cart.length > 0 ? `Pay — ${total.toLocaleString()} RWF` : 'Add items to cart'}
-          </button>
-          {lastReceipt && (
-            <div style={{marginTop:10,padding:'10px 12px',background:'#EBF8F5',border:'1px solid #A7F3D0',borderRadius:10}}>
-              <div style={{fontSize:12,fontWeight:700,color:green}}>{lastReceipt.invoiceNumber}</div>
-              <div style={{fontSize:11,color:muted}}>{lastReceipt.total.toLocaleString()} RWF — completed</div>
-              <button onClick={() => printReceipt(lastReceipt)} style={{fontSize:11,color:green,background:'none',border:'none',cursor:'pointer',textDecoration:'underline',padding:0,marginTop:2}}>
-                Reprint receipt
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <PaymentModal
-        isOpen={payOpen}
-        onClose={() => setPayOpen(false)}
-        onComplete={handlePay}
-        total={total}
-        isProcessing={processing}
-      />
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } } * { box-sizing: border-box; }`}</style>
-    </div>
-  );
-};
-
-export default POS;
