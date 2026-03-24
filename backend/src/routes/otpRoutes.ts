@@ -27,3 +27,4 @@ router.post('/otp/verify', async (req, res) => {
   if (!valid) return res.status(400).json({ error: 'Invalid or expired code' });
   res.json({ message: 'Verified' });
 });
+export default router

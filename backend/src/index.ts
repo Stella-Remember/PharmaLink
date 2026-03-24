@@ -9,11 +9,11 @@ import salesRoutes from './routes/salesRoutes'
 import claimsRoutes from './routes/claimsRoutes'
 import pharmacyRoutes from './routes/pharmacyRoutes'
 import { prisma } from './utils/prisma'
-import swaggerUi from 'swagger-ui-express';
-import { swaggerDocument } from './swagger';
+import swaggerUi from 'swagger-ui-express'
+import { swaggerDocument } from './swagger'
 import staffRoutes from "./routes/staffRoutes"
 import reportRoutes from "./routes/reportRoutes"
-import userRoutes from './routes/users';
+import userRoutes from './routes/users'
 import otpRoutes from './routes/otpRoutes';
 
 
