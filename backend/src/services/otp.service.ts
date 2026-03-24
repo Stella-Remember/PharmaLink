@@ -16,7 +16,7 @@ export const sendOTP = async (phone: string): Promise<void> => {
 
   await client.messages.create({
     body: `Your PharmaLink verification code is: ${code}. Valid for 5 minutes.`,
-    from: process.env.TWILIO_PHONE_NUMBER,
+    from: process.env.TWILIO_PHONE_NUMBER!,
     to: phone
   });
 };

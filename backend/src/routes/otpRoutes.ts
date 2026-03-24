@@ -1,15 +1,9 @@
-import twilio from 'twilio';
-
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
-
+import { Router } from 'express';
 import { sendOTP, verifyOTP } from '../services/otp.service';
-import router from './authRoutes';
 
-// Send OTP
-router.post('/otp/send', async (req, res) => {
+const router = Router();
+
+router.post('/send', async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ error: 'Phone required' });
   try {
@@ -20,11 +14,12 @@ router.post('/otp/send', async (req, res) => {
   }
 });
 
-// Verify OTP
-router.post('/otp/verify', async (req, res) => {
+router.post('/verify', async (req, res) => {
   const { phone, code } = req.body;
+  if (!phone || !code) return res.status(400).json({ error: 'Phone and code required' });
   const valid = verifyOTP(phone, code);
   if (!valid) return res.status(400).json({ error: 'Invalid or expired code' });
   res.json({ message: 'Verified' });
 });
-export default router
+
+export default router;
