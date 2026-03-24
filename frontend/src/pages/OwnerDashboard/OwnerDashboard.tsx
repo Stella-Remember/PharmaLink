@@ -7,6 +7,7 @@ import SalesReport from './SalesReport';
 import OwnerSettings from './OwnerSettings';
 import ClaimsManagement from './ClaimsManagement';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../api/client';
 
 export type TabType = 'dashboard' | 'stores' | 'users' | 'reports' | 'inventory-report' | 'claims' | 'settings';
 
@@ -46,10 +47,8 @@ interface InventoryReportItem {
   status: 'OK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'EXPIRED';
 }
 
-const API = 'http://localhost:3001/api';
-const getToken = () => localStorage.getItem('token');
-const apiFetch = (path: string) =>
-  fetch(`${API}${path}`, { headers: { Authorization: `Bearer ${getToken()}` } }).then(r => r.json());
+
+const apiFetch = (path: string) => api.get(path).then(r => r.data);
 
 // ── SVG Icons ─────────────────────────────────────────────────────────────────
 const Icons = {

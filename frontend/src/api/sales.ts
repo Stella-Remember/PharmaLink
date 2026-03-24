@@ -14,4 +14,5 @@ export const salesAPI = {
   getAll: (params?: any) => api.get('/sales', { params }),
   create: (data: any) => api.post('/sales', data),
   getToday: () => api.get('/sales/today'),
+  getReport: (params: URLSearchParams) => api.get(`/sales/report?${params}`),
 };

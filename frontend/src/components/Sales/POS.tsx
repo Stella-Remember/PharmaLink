@@ -1,5 +1,8 @@
 // src/components/Sales/POS.tsx
 import React, { useState, useEffect, useRef } from 'react';
+import { inventoryAPI } from '../../api/inventory';
+import { salesAPI } from '../../api/sales'
+
 
 // ── Insurance providers — one fixed rate each ────────────────────────────────
 const PROVIDERS = [
@@ -591,11 +594,8 @@ const POS: React.FC = () => {
 
   const fetchInv = async () => {
     try {
-      const r = await fetch('http://localhost:3001/api/inventory', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const d = await r.json();
-      setInventory(Array.isArray(d) ? d : []);
+      const r = await inventoryAPI.getAll();
+      setInventory(Array.isArray(r.data) ? r.data : []);
     } catch { setError('Failed to load inventory'); }
   };
 
@@ -635,35 +635,18 @@ const POS: React.FC = () => {
   const handlePay = async (paymentLines: PaymentLine[], insDetails?: InsuranceDetails) => {
     setProcessing(true); setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3001/api/sales', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          items: cart.map(c => ({ inventoryId: c.id, quantity: c.quantity, unitPrice: c.unitPrice, total: c.total })),
-          totalAmount: total,
-          paymentMethod: paymentLines.map(l => l.method).join('+'),
-          paymentLines,
-          ...(insDetails && {
-            patientName: insDetails.patientName,
-            insuranceProvider: insDetails.planName,
-            providerId: insDetails.providerId,
-            planCode: insDetails.planCode,
-            policyNumber: insDetails.policyNumber,
-            insuranceCoveredAmount: insDetails.coveredAmount,
-            patientCopayAmount: insDetails.patientCopay,
-            coveragePercent: insDetails.coveragePercent,
-          }),
-        }),
+      const res = await salesAPI.create({
+        items: cart.map(c => ({ medicineId: c.id, quantity: c.quantity, unitPrice: c.unitPrice })),
+        totalAmount: total,
+        paymentMethod: paymentLines[0]?.method || 'CASH',
+        paymentLines,
+        insuranceDetails: insDetails || null,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Sale failed');
 
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
       const receipt = {
-        invoiceNumber: data.invoiceNumber || `INV-${Date.now()}`,
+        invoiceNumber: res.data?.invoiceNumber || `INV-${Date.now()}`,
         items: cart, total, paymentLines,
-        pharmacist: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Pharmacist',
+        pharmacist: (() => { const u = JSON.parse(localStorage.getItem('user') || '{}'); return `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Pharmacist'; })(),
         insurance: insDetails,
         pharmacyName: JSON.parse(localStorage.getItem('pharmacy') || '{}').name || 'PharmaLink',
       };

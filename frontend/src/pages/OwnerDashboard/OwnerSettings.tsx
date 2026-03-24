@@ -2,9 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../api/client';
 
-const API = 'http://localhost:3001/api';
-const getToken = () => localStorage.getItem('token');
 
 const OwnerSettings: React.FC = () => {
   const { isDark, toggleDark } = useTheme();
@@ -56,16 +55,10 @@ const OwnerSettings: React.FC = () => {
     setProfileSaving(true);
     setProfileMsg('');
     try {
-      // Update via API — adjust endpoint if needed
-      const res = await fetch(`${API}/users/me`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify(profile)
-      });
-      if (res.ok) { setProfileMsg('✅ Profile updated successfully!'); }
-      else { const d = await res.json(); setProfileMsg(`❌ ${d.error || 'Failed to update'}`); }
-    } catch {
-      setProfileMsg('❌ Failed to connect to server');
+      await api.put('/users/me', profile);
+      setProfileMsg('✅ Profile updated successfully!');
+    } catch (err: any) {
+      setProfileMsg(`❌ ${err.response?.data?.error || 'Failed to update'}`);
     } finally {
       setProfileSaving(false);
     }
@@ -76,14 +69,12 @@ const OwnerSettings: React.FC = () => {
     if (pwd.next.length < 6) { setPwdMsg('❌ Password must be at least 6 characters'); return; }
     setPwdSaving(true); setPwdMsg('');
     try {
-      const res = await fetch(`${API}/users/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ currentPassword: pwd.current, newPassword: pwd.next })
-      });
-      if (res.ok) { setPwdMsg('✅ Password changed!'); setPwd({ current: '', next: '', confirm: '' }); }
-      else { const d = await res.json(); setPwdMsg(`❌ ${d.error || 'Failed'}`); }
-    } catch { setPwdMsg('❌ Server error'); }
+      await api.post('/users/change-password', { currentPassword: pwd.current, newPassword: pwd.next });
+      setPwdMsg('✅ Password changed!');
+      setPwd({ current: '', next: '', confirm: '' });
+    } catch (err: any) {
+      setPwdMsg(`❌ ${err.response?.data?.error || 'Failed'}`);
+    }
     finally { setPwdSaving(false); }
   };
 

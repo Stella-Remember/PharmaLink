@@ -1,9 +1,6 @@
 // src/components/Inventory/AddInventory.tsx
-// KEY FIX: The focus-stealing bug was caused by re-rendering the entire modal
-// on every keystroke because parent state changed. This version is self-contained
-// and uses local state only — no re-renders from parent during typing.
-
 import React, { useState, useCallback } from 'react';
+import { inventoryAPI } from '../../api/inventory';
 
 interface AddInventoryProps {
   isOpen: boolean;
@@ -24,14 +21,12 @@ const INIT = {
   quantity: '', reorderLevel: '', unitPrice: '',
 };
 
-// Use a stable form component that doesn't remount
 const AddInventoryForm: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({ onClose, onSuccess }) => {
   const [form, setForm] = useState(INIT);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Stable onChange that doesn't cause parent re-renders
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
@@ -60,41 +55,27 @@ const AddInventoryForm: React.FC<{ onClose: () => void; onSuccess: () => void }>
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3001/api/inventory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          medicineName: form.medicineName.trim(),
-          genericName: form.genericName.trim() || form.medicineName.trim(),
-          medicineType: form.medicineType,
-          category: form.category,
-          manufacturer: form.manufacturer.trim() || 'Unknown',
-          strength: form.strength.trim() || 'N/A',
-          form: 'Tablet',
-          requiresPrescription: form.medicineType === 'PATENTED',
-          batchNumber: form.batchNumber.trim(),
-          expiryDate: form.expiryDate,
-          quantity: parseInt(form.quantity),
-          reorderLevel: parseInt(form.reorderLevel) || 10,
-          unitPrice: parseFloat(form.unitPrice),
-          sellingPrice: parseFloat(form.unitPrice),
-          supplierId: null,
-          location: 'Main Store',
-        }),
+      await inventoryAPI.create({
+        medicineName: form.medicineName,
+        genericName: form.genericName,
+        category: form.category,
+        manufacturer: form.manufacturer,
+        strength: form.strength,
+        batchNumber: form.batchNumber,
+        expiryDate: form.expiryDate,
+        quantity: Number(form.quantity),
+        reorderLevel: Number(form.reorderLevel),
+        unitPrice: Number(form.unitPrice),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.message || 'Failed to add medicine');
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to add medicine');
     } finally {
       setLoading(false);
     }
   };
 
-  // Shared input style
   const inp = (name: string) =>
     `w-full px-3 py-2.5 border rounded-xl text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
       fieldErrors[name]
@@ -138,26 +119,18 @@ const AddInventoryForm: React.FC<{ onClose: () => void; onSuccess: () => void }>
               Trade / Brand Name <span className="text-red-500">*</span>
             </label>
             <input
-              name="medicineName"
-              type="text"
-              autoComplete="off"
-              placeholder="e.g. Panadol"
-              value={form.medicineName}
-              onChange={handleChange}
-              className={inp('medicineName')}
+              name="medicineName" type="text" autoComplete="off"
+              placeholder="e.g. Panadol" value={form.medicineName}
+              onChange={handleChange} className={inp('medicineName')}
             />
             {fieldErrors.medicineName && <p className="text-red-500 text-xs mt-1">{fieldErrors.medicineName}</p>}
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Generic Name</label>
             <input
-              name="genericName"
-              type="text"
-              autoComplete="off"
-              placeholder="e.g. Paracetamol"
-              value={form.genericName}
-              onChange={handleChange}
-              className={inp('genericName')}
+              name="genericName" type="text" autoComplete="off"
+              placeholder="e.g. Paracetamol" value={form.genericName}
+              onChange={handleChange} className={inp('genericName')}
             />
           </div>
         </div>
@@ -167,8 +140,7 @@ const AddInventoryForm: React.FC<{ onClose: () => void; onSuccess: () => void }>
           <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
             Category <span className="text-red-500">*</span>
           </label>
-          <select name="category" value={form.category} onChange={handleChange}
-            className={inp('category')}>
+          <select name="category" value={form.category} onChange={handleChange} className={inp('category')}>
             <option value="">Select category...</option>
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -222,14 +194,9 @@ const AddInventoryForm: React.FC<{ onClose: () => void; onSuccess: () => void }>
                 {f.label} <span className="text-red-500">*</span>
               </label>
               <input
-                name={f.name}
-                type="text"
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder={f.placeholder}
-                value={(form as any)[f.name]}
-                onChange={handleChange}
-                className={inp(f.name)}
+                name={f.name} type="text" inputMode="numeric" autoComplete="off"
+                placeholder={f.placeholder} value={(form as any)[f.name]}
+                onChange={handleChange} className={inp(f.name)}
               />
               {fieldErrors[f.name] && <p className="text-red-500 text-xs mt-1">{fieldErrors[f.name]}</p>}
             </div>
@@ -258,7 +225,6 @@ const AddInventoryForm: React.FC<{ onClose: () => void; onSuccess: () => void }>
   );
 };
 
-// Modal wrapper — only mounts the form when open, preventing stale state issues
 const AddInventory: React.FC<AddInventoryProps> = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null;
 
@@ -269,7 +235,6 @@ const AddInventory: React.FC<AddInventoryProps> = ({ isOpen, onClose, onSuccess 
           <h2 className="text-lg font-black">Add New Medicine</h2>
           <p className="text-gray-400 text-xs mt-0.5">Complete the form below to add to inventory</p>
         </div>
-        {/* Key re-mounts the form fresh each time modal opens — kills focus bug */}
         <AddInventoryForm key={Date.now()} onClose={onClose} onSuccess={onSuccess} />
       </div>
     </div>

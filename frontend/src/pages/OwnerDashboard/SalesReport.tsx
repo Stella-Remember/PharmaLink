@@ -1,5 +1,6 @@
 // src/pages/OwnerDashboard/SalesReport.tsx
 import React, { useState, useEffect } from 'react';
+import { salesAPI } from '../../api/sales';
 
 interface Pharmacist { id: string; name: string; email: string; }
 interface SummaryData {
@@ -39,16 +40,13 @@ const SalesReport: React.FC = () => {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
       if (selectedPharmacist) params.set('pharmacistId', selectedPharmacist);
 
-      const res = await fetch(`http://localhost:3001/api/sales/report?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const res = await salesAPI.getReport(params);
+      const data = res.data;
       setSummary(data.summary);
       setByPharmacist(data.byPharmacist || []);
       setSales(data.sales || []);

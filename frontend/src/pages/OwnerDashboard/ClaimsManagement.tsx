@@ -1,6 +1,7 @@
 // src/pages/OwnerDashboard/ClaimsManagement.tsx
 import React, { useState, useEffect } from 'react';
 import { INSURANCE_PROVIDERS } from '../../utils/insuranceCoverage';
+import { claimsAPI } from '../../api/claims';
 
 interface Claim {
   id: string;
@@ -40,9 +41,6 @@ interface ParsedClaim extends Claim {
     createdAt?: string;
   };
 }
-
-const API = 'http://localhost:3001/api';
-const token = () => localStorage.getItem('token');
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING:   'bg-amber-100 text-amber-700',
@@ -96,15 +94,12 @@ const ClaimDetailModal: React.FC<{
   const providerId = p.providerId || '';
   const providerInfo = INSURANCE_PROVIDERS.find(pr => pr.id === providerId);
 
-  const handleStatus = async (newStatus: string) => {
+ const handleStatus = async (newStatus: string) => {
     setUpdating(true);
     try {
-      const res = await fetch(`${API}/claims/${claim.id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (res.ok) { onStatusUpdate(claim.id, newStatus); onClose(); }
+      await claimsAPI.updateStatus(claim.id, newStatus);
+      onStatusUpdate(claim.id, newStatus);
+      onClose();
     } catch (e) { console.error(e); }
     finally { setUpdating(false); }
   };
@@ -359,8 +354,8 @@ const ClaimsManagement: React.FC = () => {
   const fetchClaims = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/claims`, { headers: { Authorization: `Bearer ${token()}` } });
-      const data = await res.json();
+      const res = await claimsAPI.getAll();
+      const data = res.data;
       const parsed: ParsedClaim[] = (Array.isArray(data) ? data : []).map((c: Claim) => {
         let p: ParsedClaim['parsed'] = {};
         if (c.notes) { try { p = JSON.parse(c.notes); } catch {} }

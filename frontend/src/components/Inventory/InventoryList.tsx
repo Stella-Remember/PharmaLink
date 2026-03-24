@@ -4,6 +4,7 @@ import { inventoryAPI, Medicine } from '../../api/inventory';
 import AddInventory from './AddInventory';
 import AdjustStock from './AdjustStock';
 
+
 const TEMPLATE_HEADERS = [
   'medicineName', 'category', 'manufacturer', 'strength',
   'batchNumber', 'expiryDate', 'quantity', 'reorderLevel', 'unitPrice'
@@ -147,15 +148,13 @@ const InventoryList: React.FC = () => {
     }
 
     // Validate and send each row
-    const token = localStorage.getItem('token');
     let successCount = 0;
     const errors: string[] = [];
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const rowNum = i + 2; // +2 because row 1 is header
+      const rowNum = i + 2;
 
-      // Validate
       if (isNaN(Number(row.quantity)) || Number(row.quantity) < 0) {
         errors.push(`Row ${rowNum}: Invalid quantity "${row.quantity}"`);
         continue;
@@ -165,38 +164,23 @@ const InventoryList: React.FC = () => {
         continue;
       }
 
-      const payload = {
-        medicineName: row.medicineName,
-        genericName: row.medicineName,
-        category: row.category || 'Other',
-        manufacturer: row.manufacturer || 'Unknown',
-        strength: row.strength || 'N/A',
-        form: 'Tablet',
-        requiresPrescription: false,
-        batchNumber: row.batchNumber,
-        expiryDate: row.expiryDate,
-        quantity: parseInt(row.quantity),
-        reorderLevel: parseInt(row.reorderLevel) || 10,
-        unitPrice: parseFloat(row.unitPrice),
-        sellingPrice: parseFloat(row.unitPrice),
-        supplierId: null,
-        location: 'Main Store',
-      };
-
       try {
-        const response = await fetch('http://localhost:3001/api/inventory', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(payload),
+        await inventoryAPI.create({
+          medicineName: row.medicineName,
+          genericName: row.medicineName,
+          category: row.category || 'Other',
+          manufacturer: row.manufacturer || 'Unknown',
+          strength: row.strength || 'N/A',
+          batchNumber: row.batchNumber,
+          expiryDate: row.expiryDate,
+          quantity: parseInt(row.quantity),
+          reorderLevel: parseInt(row.reorderLevel) || 10,
+          unitPrice: parseFloat(row.unitPrice),
         });
-        if (response.ok) {
-          successCount++;
-        } else {
-          const data = await response.json();
-          errors.push(`Row ${rowNum} (${row.medicineName}): ${data.error || data.message || 'Failed'}`);
-        }
-      } catch {
-        errors.push(`Row ${rowNum}: Network error`);
+        successCount++;
+      } catch (err: any) {
+        const msg = err.response?.data?.message || err.response?.data?.error || 'Failed';
+        errors.push(`Row ${rowNum} (${row.medicineName}): ${msg}`);
       }
     }
 
