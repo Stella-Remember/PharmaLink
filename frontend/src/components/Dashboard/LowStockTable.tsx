@@ -1,65 +1,96 @@
 import React from 'react';
 
 interface LowStockItem {
+  id?: string | number;
   medicine: string;
   currentStock: number;
   reorderLevel: number;
-  status: string;
+  status?: string;
 }
 
 interface LowStockTableProps {
   items: LowStockItem[];
+  onReorder?: (id: string | number) => void;
+  onViewAll?: () => void;
 }
 
-const LowStockTable: React.FC<LowStockTableProps> = ({ items }) => {
+const LowStockTable: React.FC<LowStockTableProps> = ({ 
+  items, 
+  onReorder,
+  onViewAll 
+}) => {
+  const getStockStatusColor = (current: number, reorderLevel: number) => {
+    if (current === 0) return 'text-red-600 dark:text-red-400';
+    if (current < reorderLevel / 2) return 'text-orange-600 dark:text-orange-400';
+    return 'text-amber-600 dark:text-amber-400';
+  };
+
+  if (items.length === 0) {
+    return (
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Low Stock Items</h3>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-sm text-gray-500 dark:text-gray-400">No low stock items</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">All inventory levels are healthy</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-      <div className="px-6 py-4 border-b border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-800">Low Stock Alerts</h3>
-        <p className="text-sm text-gray-500">Medicines below reorder level</p>
+    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white">Low Stock Items</h3>
+        {onViewAll && (
+          <button
+            onClick={onViewAll}
+            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+          >
+            View All
+          </button>
+        )}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                MEDICINE
+          <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Medicine
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                CURRENT STOCK
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Current Stock
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                REORDER LEVEL
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Reorder Level
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                STATUS
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ACTION
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Action
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {items.map((item, index) => (
-              <tr key={index} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{item.medicine}</div>
+              <tr key={item.id || index} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                  {item.medicine}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{item.currentStock} units</div>
+                <td className={`px-4 py-3 text-sm font-medium ${getStockStatusColor(item.currentStock, item.reorderLevel)}`}>
+                  {item.currentStock} units
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{item.reorderLevel} units</div>
+                <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                  {item.reorderLevel} units
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                    {item.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <button className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
-                    Order
-                  </button>
+                <td className="px-4 py-3 text-right">
+                  {onReorder && (
+                    <button
+                      onClick={() => onReorder(item.id || index)}
+                      className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                    >
+                      Reorder
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

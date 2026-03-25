@@ -1,42 +1,77 @@
-// src/components/Dashboard/StatsCard.tsx
 import React from 'react';
 
 interface StatsCardProps {
   title: string;
-  value: number | string;
+  value: string | number;
   subtitle?: string;
   icon?: React.ReactNode;
-  accent?: 'green' | 'blue' | 'indigo' | 'amber';
+  trend?: string;
+  variant?: 'default' | 'warning' | 'success';
 }
 
-const accentMap = {
-  green:  { bar: 'bg-seagrass',     icon: 'bg-seagrass/10 text-seagrass',     text: 'text-seagrass' },
-  blue:   { bar: 'bg-steel-blue',   icon: 'bg-steel-blue/10 text-steel-blue', text: 'text-steel-blue' },
-  indigo: { bar: 'bg-space-indigo', icon: 'bg-space-indigo/20 text-alice-blue',text: 'text-alice-blue' },
-  amber:  { bar: 'bg-yellow-500',   icon: 'bg-yellow-500/10 text-yellow-400', text: 'text-yellow-400' },
-};
+const StatsCard: React.FC<StatsCardProps> = ({ 
+  title, 
+  value, 
+  subtitle, 
+  icon, 
+  trend,
+  variant = 'default'
+}) => {
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'warning':
+        return {
+          bg: 'bg-amber-50 dark:bg-amber-950/20',
+          border: 'border-amber-200 dark:border-amber-800',
+          text: 'text-amber-700 dark:text-amber-400',
+          iconBg: 'bg-amber-100 dark:bg-amber-900/30',
+        };
+      case 'success':
+        return {
+          bg: 'bg-green-50 dark:bg-green-950/20',
+          border: 'border-green-200 dark:border-green-800',
+          text: 'text-green-700 dark:text-green-400',
+          iconBg: 'bg-green-100 dark:bg-green-900/30',
+        };
+      default:
+        return {
+          bg: 'bg-white dark:bg-gray-900',
+          border: 'border-gray-200 dark:border-gray-800',
+          text: 'text-gray-900 dark:text-white',
+          iconBg: 'bg-gray-50 dark:bg-gray-800',
+        };
+    }
+  };
 
-const StatsCard: React.FC<StatsCardProps> = ({ title, value, subtitle, icon, accent = 'green' }) => {
-  const a = accentMap[accent];
+  const styles = getVariantStyles();
+
   return (
-    <div className="bg-dark-surface rounded-xl p-5 border border-dark-border relative overflow-hidden hover:border-seagrass/30 transition-colors">
-      {/* top accent bar */}
-      <div className={`absolute top-0 left-0 right-0 h-0.5 ${a.bar}`} />
-
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-alice-blue/40 uppercase tracking-wider">{title}</span>
+    <div className={`rounded-lg border ${styles.bg} ${styles.border} p-5 transition-all hover:shadow-sm`}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            {title}
+          </p>
+          <p className={`mt-2 text-2xl font-semibold ${styles.text}`}>
+            {value}
+          </p>
+          {subtitle && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {subtitle}
+            </p>
+          )}
+          {trend && (
+            <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+              {trend}
+            </p>
+          )}
+        </div>
         {icon && (
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${a.icon}`}>
+          <div className={`rounded-lg p-2 ${styles.iconBg} ${styles.text}`}>
             {icon}
           </div>
         )}
       </div>
-
-      <div className="font-display text-3xl text-alice-blue">{value}</div>
-
-      {subtitle && (
-        <div className="text-xs text-yellow-400 mt-1">{subtitle}</div>
-      )}
     </div>
   );
 };

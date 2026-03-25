@@ -1,57 +1,88 @@
 import React from 'react';
 
-interface RecentSale {
-  id: string;
-  invoiceNumber: string;
-  total: number;
-  createdAt: string;
-  customerName?: string;
+interface Sale {
+  id?: string | number;
+  date: string;
+  amount: number;
+  customer?: string;
+  items?: number;
 }
 
 interface RecentSalesProps {
-  sales: RecentSale[];
+  sales: Sale[];
+  onViewAll?: () => void;
 }
 
-const RecentSales: React.FC<RecentSalesProps> = ({ sales }) => {
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-      <div className="px-6 py-4 border-b border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-800">Recent Sales</h3>
-        <p className="text-sm text-gray-500">Latest transactions</p>
+const RecentSales: React.FC<RecentSalesProps> = ({ sales, onViewAll }) => {
+  const formatCurrency = (amount: number) => {
+    return `${amount.toLocaleString()} RWF`;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
+
+  if (sales.length === 0) {
+    return (
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Recent Sales</h3>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-sm text-gray-500 dark:text-gray-400">No sales today</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Sales will appear here when processed</p>
+        </div>
       </div>
-      <div className="p-4">
-        {sales.length === 0 ? (
-          <div className="text-center py-8">
-            <svg className="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            <p className="text-gray-500 text-sm">No transactions today</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {sales.map((sale) => (
-              <div key={sale.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{sale.invoiceNumber}</div>
-                  <div className="text-xs text-gray-500">{sale.customerName || 'Walk-in Customer'}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-semibold text-gray-900">${sale.total.toFixed(2)}</div>
-                  <div className="text-xs text-gray-500">
-                    {new Date(sale.createdAt).toLocaleTimeString()}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white">Recent Sales</h3>
+        {onViewAll && (
+          <button
+            onClick={onViewAll}
+            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+          >
+            View All
+          </button>
         )}
       </div>
-      <div className="px-6 py-4 border-t border-gray-100">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-500">v1.0.0</span>
-          <span className="text-gray-400">|</span>
-          <span className="text-gray-500">2026 Pharmalink</span>
-        </div>
+      <div className="divide-y divide-gray-200 dark:divide-gray-800">
+        {sales.map((sale, index) => (
+          <div key={sale.id || index} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {formatCurrency(sale.amount)}
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {formatDate(sale.date)}
+              </span>
+            </div>
+            {sale.customer && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Customer: {sale.customer}
+              </p>
+            )}
+            {sale.items && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                {sale.items} item{sale.items !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

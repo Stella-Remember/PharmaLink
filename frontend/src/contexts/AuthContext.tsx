@@ -8,8 +8,9 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;  // Keep as Promise<void>
+  register: (data: RegisterData) => Promise<void>;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;  // Add this line
   error: string | null;
 }
 
@@ -58,13 +59,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // FIXED: Remove the return value, just return void/Promise<void>
   const register = async (data: RegisterData): Promise<void> => {
     try {
       setError(null);
       setIsLoading(true);
-      await authAPI.register(data);  // Don't store the response
-      // Registration successful - we don't need to return anything
+      await authAPI.register(data);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Registration failed');
       throw err;
@@ -79,8 +78,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
   };
 
+  // Add the updateUser function
+  const updateUser = (userData: Partial<User>): void => {
+    if (user) {
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      // Also update localStorage to keep it in sync
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, error }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      isLoading, 
+      login, 
+      register, 
+      logout, 
+      updateUser,  // Add this
+      error 
+    }}>
       {children}
     </AuthContext.Provider>
   );
