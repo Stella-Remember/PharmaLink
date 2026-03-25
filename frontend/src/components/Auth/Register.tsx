@@ -80,11 +80,11 @@ const Register: React.FC = () => {
                 width: 48, height: 48, borderRadius: 14,
                 backgroundColor: '#32A287', marginBottom: 10,
               }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                  <path d="M2 17l10 5 10-5"/>
-                  <path d="M2 12l10 5 10-5"/>
-                </svg>
+                <img 
+                    src="/logo.png" 
+                    alt="PharmaLink" 
+                    style={{ width: 64, height: 64, objectFit: 'contain', marginBottom: 12 }} 
+                />
               </div>
               <Title order={1} fw={700} style={{ color: '#201E50', fontSize: '1.5rem' }}>
                 PharmaLink

@@ -18,5 +18,5 @@ export const claimsAPI = {
   getAll: (params?: any) => api.get('/claims', { params }),
   getById: (id: string) => api.get(`/claims/${id}`),
   create: (data: Partial<Claim>) => api.post('/claims', data),
-  updateStatus: (id: string, status: string) => api.patch(`/claims/${id}/status`, { status }),
+  updateStatus: (id: string, status: string) => api.put(`/claims/${id}/status`, { status }),
 };

@@ -70,13 +70,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     <div className="w-64 bg-white h-screen fixed left-0 top-0 border-r border-gray-200 flex flex-col">
 
       {/* Logo */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-center">
-        <img
-          src="/logo.png"
-          alt="PharmaLink"
-          className="h-12 w-auto object-contain"
-        />
-      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px' }}>
+     <img src="/logo.png" alt="PharmaLink" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+     <span style={{ fontWeight: 700, fontSize: 18, color: '#201E50' }}>PharmaLink</span>
+  </div> 
 
       {/* User Info */}
       <div className="px-4 py-3 border-b border-gray-200">
