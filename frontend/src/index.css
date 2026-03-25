@@ -10,11 +10,11 @@
     color: #1a2235;
     margin: 0;
     padding: 0;
-    font-family: 'Numans', system-ui, sans-serif;
+    font-family: 'inter', system-ui, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Taviraj', system-ui, sans-serif;
+    font-family: 'inter', system-ui, sans-serif;
   }
 
   input, select, textarea {

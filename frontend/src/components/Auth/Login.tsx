@@ -55,7 +55,7 @@ const Login: React.FC = () => {
           boxShadow: '0 4px 24px rgba(50, 162, 135, 0.08)',
         }}>
           <Stack gap="lg">
-            {/* Logo / Brand */}
+            {/* Brand */}
             <Box ta="center" mb={4}>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
