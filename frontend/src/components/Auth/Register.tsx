@@ -3,39 +3,23 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
-  Container,
-  Paper,
-  Title,
-  Text,
-  TextInput,
-  PasswordInput,
-  Button,
-  Stack,
-  Group,
-  Box,
+  Container, Paper, Title, Text, TextInput,
+  PasswordInput, Button, Stack, Group, Box,
 } from '@mantine/core';
 import { IconMail, IconLock, IconUser, IconBuilding, IconLicense } from '@tabler/icons-react';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
-    pharmacyName: '',
-    licenseNumber: '',
+    email: '', password: '', firstName: '',
+    lastName: '', pharmacyName: '', licenseNumber: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  
   const { register, error } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
     setLocalError(null);
   };
 
@@ -53,112 +37,135 @@ const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     const validationError = validateForm();
-    if (validationError) {
-      setLocalError(validationError);
-      return;
-    }
-    
+    if (validationError) { setLocalError(validationError); return; }
     setIsLoading(true);
     setLocalError(null);
-
     try {
-      // Send as PHARMACY_OWNER by default (only role that can register)
-      await register({
-        ...formData,
-        role: 'PHARMACY_OWNER'
-      });
-      
+      await register({ ...formData, role: 'PHARMACY_OWNER' });
       alert('Registration successful! Please login with your credentials.');
       navigate('/login');
     } catch (err: any) {
-      console.error('Registration error:', err);
       setLocalError(err.response?.data?.error || err.message || 'Registration failed');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const inputStyles = {
+    input: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#1a2235' },
+    label: { color: '#374151', fontWeight: 500, fontSize: '0.875rem' },
+  };
+
   return (
-    <Box style={{ minHeight: '100vh', backgroundColor: '#F5F7FA', display: 'flex', alignItems: 'center' }}>
-      <Container size="sm" py="xl">
-        <Paper radius="lg" p="xl" withBorder>
+    <Box style={{
+      minHeight: '100vh',
+      backgroundColor: '#EFF7FF',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px 0',
+    }}>
+      <Container size="sm" style={{ width: '100%' }}>
+        <Paper radius="xl" p={40} style={{
+          backgroundColor: 'white',
+          border: '1px solid #E8F0FE',
+          boxShadow: '0 4px 24px rgba(50, 162, 135, 0.08)',
+        }}>
           <Stack gap="lg">
+            {/* Brand */}
             <Box ta="center">
-              <Title order={1} c="primary" fw={600} style={{ color: '#1E88E5' }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 48, height: 48, borderRadius: 14,
+                backgroundColor: '#32A287', marginBottom: 10,
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <Title order={1} fw={700} style={{ color: '#201E50', fontSize: '1.5rem' }}>
                 PharmaLink
               </Title>
-              <Text c="dimmed">Register your pharmacy</Text>
+              <Text size="sm" style={{ color: '#6B7280', marginTop: 2 }}>
+                Create your pharmacy account
+              </Text>
             </Box>
 
             <form onSubmit={handleSubmit}>
               <Stack gap="md">
                 <Group grow>
                   <TextInput
-                    label="First Name *"
-                    placeholder="Your first name"
+                    label="First Name"
+                    placeholder="First name"
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleChange}
-                    leftSection={<IconUser size={16} />}
+                    leftSection={<IconUser size={16} color="#9CA3AF" />}
                     required
+                    styles={inputStyles}
                   />
                   <TextInput
-                    label="Last Name *"
-                    placeholder="Your last name"
+                    label="Last Name"
+                    placeholder="Last name"
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleChange}
-                    leftSection={<IconUser size={16} />}
+                    leftSection={<IconUser size={16} color="#9CA3AF" />}
                     required
+                    styles={inputStyles}
                   />
                 </Group>
 
                 <TextInput
-                  label="Email Address *"
-                  placeholder="your@email.com"
+                  label="Email Address"
+                  placeholder="you@example.com"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  leftSection={<IconMail size={16} />}
+                  leftSection={<IconMail size={16} color="#9CA3AF" />}
                   required
+                  styles={inputStyles}
                 />
 
                 <PasswordInput
-                  label="Password *"
-                  placeholder="Create password"
+                  label="Password"
+                  placeholder="Min. 6 characters"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  leftSection={<IconLock size={16} />}
+                  leftSection={<IconLock size={16} color="#9CA3AF" />}
                   required
+                  styles={inputStyles}
                 />
 
                 <TextInput
-                  label="Pharmacy Name *"
-                  placeholder="Enter your pharmacy name"
+                  label="Pharmacy Name"
+                  placeholder="e.g. Goodlife Pharmacy"
                   name="pharmacyName"
                   value={formData.pharmacyName}
                   onChange={handleChange}
-                  leftSection={<IconBuilding size={16} />}
+                  leftSection={<IconBuilding size={16} color="#9CA3AF" />}
                   required
+                  styles={inputStyles}
                 />
 
                 <TextInput
-                  label="License Number *"
-                  placeholder="Enter pharmacy license number"
+                  label="License Number"
+                  placeholder="e.g. RPB-2024-001"
                   name="licenseNumber"
                   value={formData.licenseNumber}
                   onChange={handleChange}
-                  leftSection={<IconLicense size={16} />}
+                  leftSection={<IconLicense size={16} color="#9CA3AF" />}
                   required
+                  styles={inputStyles}
                 />
 
-                {/* Error Display */}
                 {(localError || error) && (
-                  <Paper p="sm" bg="red.0" c="red.7" radius="md" withBorder>
-                    <Text size="sm">{localError || error}</Text>
+                  <Paper p="sm" radius="md" style={{ backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5' }}>
+                    <Text size="sm" style={{ color: '#DC2626' }}>{localError || error}</Text>
                   </Paper>
                 )}
 
@@ -167,20 +174,21 @@ const Register: React.FC = () => {
                   fullWidth
                   size="md"
                   loading={isLoading}
-                  styles={{
-                    root: {
-                      backgroundColor: '#43A047',
-                      height: '44px',
-                      '&:hover': { backgroundColor: '#2E7D32' },
-                    },
+                  style={{
+                    backgroundColor: '#32A287',
+                    height: 46,
+                    borderRadius: 10,
+                    fontWeight: 600,
+                    fontSize: '0.95rem',
+                    marginTop: 4,
                   }}
                 >
                   {isLoading ? 'Creating account...' : 'Register Pharmacy'}
                 </Button>
 
-                <Text ta="center" size="sm">
+                <Text ta="center" size="sm" style={{ color: '#6B7280' }}>
                   Already have an account?{' '}
-                  <a href="/login" style={{ color: '#1E88E5', textDecoration: 'none', fontWeight: 600 }}>
+                  <a href="/login" style={{ color: '#32A287', textDecoration: 'none', fontWeight: 600 }}>
                     Sign in
                   </a>
                 </Text>
