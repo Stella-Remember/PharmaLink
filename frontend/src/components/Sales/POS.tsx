@@ -283,7 +283,7 @@ const InsuranceModal: React.FC<{
   const validatePhoneNumber = (phone: string): boolean => {
     // Accept formats: 0788XXXXXX, 0788-XXXXXX, +250788XXXXXX, 250788XXXXXX
     const cleanPhone = phone.replace(/[-\s]/g, '');
-    const phoneRegex = /^(07[238]\d{7}|\+2507[238]\d{7}|2507[238]\d{7})$/;
+    const phoneRegex = /^(\+?250)?07[2-9]\d{7}$/;
     return phoneRegex.test(cleanPhone);
   };
 
