@@ -55,18 +55,24 @@ const Login: React.FC = () => {
           boxShadow: '0 4px 24px rgba(50, 162, 135, 0.08)',
         }}>
           <Stack gap="lg">
-            {/* Brand */}
+            {/* Brand - Fixed logo positioning */}
             <Box ta="center" mb={4}>
+              {/* Logo container without background circle */}
               <div style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 56, height: 56, borderRadius: 16,
-                backgroundColor: '#32A287', marginBottom: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
               }}>
                 <img 
-                     src="/logo.png" 
-                     alt="PharmaLink" 
-                     style={{ width: 64, height: 64, objectFit: 'contain', marginBottom: 12 }} 
-                 />
+                  src="/logo.png" 
+                  alt="PharmaLink" 
+                  style={{ 
+                    width: 64, 
+                    height: 64, 
+                    objectFit: 'contain',
+                  }} 
+                />
               </div>
               <Title order={1} fw={700} style={{ color: '#201E50', fontSize: '1.75rem', letterSpacing: '-0.5px' }}>
                 PharmaLink

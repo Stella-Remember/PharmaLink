@@ -45,6 +45,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const handleLogout = () => { logout(); navigate('/login'); };
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
 
+  const handleLogoError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.style.display = 'none';
+    const nextSibling = e.currentTarget.nextSibling;
+    if (nextSibling && nextSibling instanceof HTMLElement) {
+      nextSibling.style.marginLeft = '0';
+    }
+  };
+
   return (
     <div style={{
       width: 240,
@@ -57,29 +65,48 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       flexDirection: 'column',
     }}>
       {/* Logo */}
-      <div style={{ padding: '18px 20px', borderBottom: '1px solid #F8FAFC', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ 
+        padding: '20px 20px', 
+        borderBottom: '1px solid #F8FAFC', 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 12,
+        justifyContent: 'flex-start',
+      }}>
         <img
           src="/logo.png"
           alt="PharmaLink"
-          style={{ width: 30, height: 30, objectFit: 'contain', borderRadius: 6 }}
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          style={{ 
+            width: 32, 
+            height: 32, 
+            objectFit: 'contain',
+          }}
+          onError={handleLogoError}
         />
-        <span style={{ fontWeight: 700, fontSize: 16, color: '#201E50', letterSpacing: '-0.3px' }}>PharmaLink</span>
+        <span style={{ 
+          fontWeight: 700, 
+          fontSize: 18, 
+          color: '#201E50', 
+          letterSpacing: '-0.3px',
+          lineHeight: 1,
+        }}>
+          PharmaLink
+        </span>
       </div>
 
       {/* User */}
-      <div style={{ padding: '10px 14px', borderBottom: '1px solid #F8FAFC' }}>
+      <div style={{ padding: '16px 14px', borderBottom: '1px solid #F8FAFC' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', backgroundColor: '#EFF7FF', borderRadius: 10 }}>
           <div style={{
-            width: 30, height: 30, borderRadius: '50%',
+            width: 32, height: 32, borderRadius: '50%',
             backgroundColor: '#201E50', color: 'white',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, fontWeight: 700, flexShrink: 0,
+            fontSize: 12, fontWeight: 700, flexShrink: 0,
           }}>
             {initials || 'PH'}
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#201E50', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#201E50', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.firstName} {user?.lastName}
             </div>
             <div style={{ fontSize: 10, color: '#4F7CAC' }}>
@@ -90,11 +117,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, padding: '12px', overflowY: 'auto' }}>
-        <p style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em', padding: '0 10px', marginBottom: 6, margin: '0 0 8px 10px' }}>
+      <nav style={{ flex: 1, padding: '16px 12px', overflowY: 'auto' }}>
+        <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em', padding: '0 10px', marginBottom: 12 }}>
           Main Menu
         </p>
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
           {menuItems.map(item => {
             const isActive = activeTab === item.id;
             return (
@@ -102,8 +129,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
                 <button
                   onClick={() => handleTabClick(item.id)}
                   style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '9px 12px', borderRadius: 8,
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 12px', borderRadius: 8,
                     backgroundColor: isActive ? '#EFF7FF' : 'transparent',
                     color: isActive ? '#32A287' : '#6B7280',
                     border: 'none', cursor: 'pointer',
@@ -121,14 +148,22 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       </nav>
 
       {/* Logout */}
-      <div style={{ padding: '10px 12px', borderTop: '1px solid #F8FAFC' }}>
+      <div style={{ padding: '16px 12px', borderTop: '1px solid #F8FAFC' }}>
         <button
           onClick={handleLogout}
           style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-            padding: '9px 12px', borderRadius: 8, border: 'none',
+            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+            padding: '10px 12px', borderRadius: 8, border: 'none',
             backgroundColor: 'transparent', color: '#9CA3AF',
             cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.12s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#FEF2F2';
+            e.currentTarget.style.color = '#DC2626';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = '#9CA3AF';
           }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
