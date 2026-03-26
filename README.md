@@ -338,7 +338,7 @@ Deployment Status: Active and verified on 26 March 2026
 
 ## 13. Video Demo
 
-Demo Video: --------------------------------------------
+Demo Video: (https://drive.google.com/file/d/1i1nfgSMnQbMjIxjAuIgwClxc68VYUkUQ/view?usp=sharing)
 
 Video Covers:
 - Application overview
