@@ -55,31 +55,25 @@ const Login: React.FC = () => {
           boxShadow: '0 4px 24px rgba(50, 162, 135, 0.08)',
         }}>
           <Stack gap="lg">
-            {/* Brand - Fixed logo positioning */}
+            {/* Brand - Enlarged logo, removed PharmaLink text */}
             <Box ta="center" mb={4}>
-              {/* Logo container without background circle */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: 16,
+                marginBottom: 24,
               }}>
                 <img 
                   src="/logo.png" 
                   alt="PharmaLink" 
                   style={{ 
-                    width: 64, 
-                    height: 64, 
+                    width: 100, 
+                    height: 100, 
                     objectFit: 'contain',
                   }} 
                 />
               </div>
-              <Title order={1} fw={700} style={{ color: '#201E50', fontSize: '1.75rem', letterSpacing: '-0.5px' }}>
-                PharmaLink
-              </Title>
-              <Text size="sm" style={{ color: '#6B7280', marginTop: 4 }}>
-                Pharmacy Management System
-              </Text>
+              {/* Removed PharmaLink title and Pharmacy Management System text */}
             </Box>
 
             <Title order={3} fw={600} ta="center" style={{ color: '#1a2235' }}>

@@ -47,10 +47,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
 
   const handleLogoError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     e.currentTarget.style.display = 'none';
-    const nextSibling = e.currentTarget.nextSibling;
-    if (nextSibling && nextSibling instanceof HTMLElement) {
-      nextSibling.style.marginLeft = '0';
-    }
   };
 
   return (
@@ -64,34 +60,25 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* Logo */}
+      {/* Logo - Enlarged and centered */}
       <div style={{ 
-        padding: '20px 20px', 
+        padding: '24px 20px', 
         borderBottom: '1px solid #F8FAFC', 
         display: 'flex', 
         alignItems: 'center', 
-        gap: 12,
-        justifyContent: 'flex-start',
+        justifyContent: 'center',
       }}>
         <img
           src="/logo.png"
           alt="PharmaLink"
           style={{ 
-            width: 32, 
-            height: 32, 
+            width: 48, 
+            height: 48, 
             objectFit: 'contain',
           }}
           onError={handleLogoError}
         />
-        <span style={{ 
-          fontWeight: 700, 
-          fontSize: 18, 
-          color: '#201E50', 
-          letterSpacing: '-0.3px',
-          lineHeight: 1,
-        }}>
-          PharmaLink
-        </span>
+        {/* Removed PharmaLink text span */}
       </div>
 
       {/* User */}

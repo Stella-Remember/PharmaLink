@@ -73,26 +73,30 @@ const Register: React.FC = () => {
           boxShadow: '0 4px 24px rgba(50, 162, 135, 0.08)',
         }}>
           <Stack gap="lg">
-            {/* Brand */}
+            {/* Brand - Enlarged logo, removed PharmaLink text */}
             <Box ta="center">
               <div style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 48, height: 48, borderRadius: 14,
-                backgroundColor: '#32A287', marginBottom: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 24,
               }}>
                 <img 
-                    src="/logo.png" 
-                    alt="PharmaLink" 
-                    style={{ width: 64, height: 64, objectFit: 'contain', marginBottom: 12 }} 
+                  src="/logo.png" 
+                  alt="PharmaLink" 
+                  style={{ 
+                    width: 90, 
+                    height: 90, 
+                    objectFit: 'contain',
+                  }} 
                 />
               </div>
-              <Title order={1} fw={700} style={{ color: '#201E50', fontSize: '1.5rem' }}>
-                PharmaLink
-              </Title>
-              <Text size="sm" style={{ color: '#6B7280', marginTop: 2 }}>
-                Create your pharmacy account
-              </Text>
+              {/* Removed PharmaLink title and subtitle */}
             </Box>
+
+            <Title order={3} fw={600} ta="center" style={{ color: '#1a2235' }}>
+              Create your pharmacy account
+            </Title>
 
             <form onSubmit={handleSubmit}>
               <Stack gap="md">
