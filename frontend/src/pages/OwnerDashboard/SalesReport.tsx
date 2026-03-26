@@ -144,12 +144,34 @@ const SalesReport: React.FC = () => {
               { label: 'Pending Claims', value: summary.pendingClaimsCount.toString(), sub: 'awaiting', top: '#DC2626', color: '#DC2626' },
             ].map(k => (
               <div key={k.label} style={{
-                backgroundColor: '#ffffff', border: '1px solid #F1F5F9',
-                borderTop: `3px solid ${k.top}`, borderRadius: 12, padding: '16px',
-              }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: k.color }}>{k.value}</div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>{k.label}</div>
-                {k.sub && <div style={{ fontSize: 11, color: '#C4C9D4', marginTop: 2 }}>{k.sub}</div>}
+                  background: `linear-gradient(135deg, ${k.top}, ${k.top}CC)`,
+                  borderRadius: 12,
+                  padding: '18px',
+                  color: '#fff',
+                   boxShadow: '0 10px 20px rgba(0,0,0,0.05)'
+                }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: k.color }}>
+               {k.value}
+                </div>
+                <div style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: '#6B7280',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.06em',
+                          marginTop: 6
+                      }}>
+                        {k.label}
+                </div>
+                        {k.sub && (
+                <div style={{
+                          fontSize: 11,
+                          color: '#9CA3AF',
+                         marginTop: 2
+                          }}>
+                         {k.sub}
+                </div>
+                  )}
               </div>
             ))}
           </div>

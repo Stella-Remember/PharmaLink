@@ -100,6 +100,15 @@ const Icons = {
 };
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
+const accentColors: Record<string, { main: string }> = {
+  green:  { main: '#32A287' },
+  blue:   { main: '#4F7CAC' },
+  purple: { main: '#7C3AED' },
+  indigo: { main: '#4F46E5' },
+  amber:  { main: '#D97706' },
+  red:    { main: '#DC2626' },
+};
+
 const StatCard: React.FC<{
   label: string; value: string | number; sub?: string;
   icon: React.ReactNode; accent: string; loading?: boolean;
@@ -114,21 +123,33 @@ const StatCard: React.FC<{
   };
   const a = accents[accent] || accents.blue;
 
-  return (
-    <div className="bg-white rounded-xl p-4 border border-gray-100 hover:shadow-sm transition-shadow">
-      <div className="flex items-start justify-between mb-3">
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${a.bg} ${a.icon}`}>{icon}</div>
+ return (
+  <div
+    className="rounded-xl p-4 text-white transition-all"
+    style={{
+      background: `linear-gradient(135deg, ${accentColors[accent].main}, ${accentColors[accent].main}CC)`,
+      boxShadow: '0 10px 20px rgba(0,0,0,0.05)'
+    }}
+  >
+    <div className="flex items-start justify-between mb-3">
+      <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-white/20">
+        {icon}
       </div>
-      {loading ? (
-        <div className="h-7 w-20 rounded-md animate-pulse bg-gray-100" />
-      ) : (
-        <div className="text-2xl font-semibold text-gray-800">{value}</div>
-      )}
-      <div className="text-xs font-medium text-gray-400 mt-1 uppercase tracking-wide">{label}</div>
-      {sub && <div className="text-xs text-gray-300 mt-0.5">{sub}</div>}
     </div>
-  );
-};
+
+    {loading ? (
+      <div className="h-7 w-20 rounded-md animate-pulse bg-white/30" />
+    ) : (
+      <div className="text-2xl font-semibold">{value}</div>
+    )}
+
+    <div className="text-xs font-medium mt-1 uppercase tracking-wide text-white/90">
+      {label}
+    </div>
+
+    {sub && <div className="text-xs text-white/70 mt-0.5">{sub}</div>}
+  </div>
+)};
 
 // ── Inventory Report Tab ──────────────────────────────────────────────────────
 const InventoryReportTab: React.FC = () => {
