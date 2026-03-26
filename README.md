@@ -1,3 +1,131 @@
+# PharmaLink - Pharmacy Management System
+
+## 1. Description
+
+PharmaLink is a full-stack pharmacy management system developed to address the pharmacy digitization gap in Rwanda. The system integrates inventory management, point-of-sale (POS) operations, and digital insurance claims processing into a single cloud-based platform.
+
+The goal of PharmaLink is to eliminate manual paperwork, improve operational efficiency, and significantly reduce insurance reimbursement delays for community pharmacies.
+
+## 2. GitHub Repository
+
+Repository: https://github.com/Stella-Remember/PharmaLink.git
+
+Branch Structure:
+- main - Stable product code
+- develop - Active development branch
+- feature/* - Individual feature branches
+
+## 3. Environment & Project Setup
+
+Requirements:
+- Node.js
+- npm
+- PostgreSQL
+- Git
+
+### 3.1 Clone the Repository
+git clone https://github.com/Stella-Remember/PharmaLink.git
+cd PharmaLink
+
+
+### 3.2 Set Up Backend
+cd backend
+npm install
+cp .env.example .env
+npx prisma migrate dev
+npm run dev
+
+
+Backend will start on: http://localhost:5000
+
+Health check: http://localhost:5000/api/health
+
+### 3.3 Set Up Frontend
+
+Open a new terminal:
+cd frontend
+npm install
+npm run dev
+
+
+Frontend will be available at: http://localhost:5173
+
+## 4. Environment Variables
+
+### Backend (backend/.env)
+DATABASE_URL="postgresql://user:password@localhost:5432/pharmalink"
+JWT_SECRET="your-secret-key-here"
+PORT=5000
+FRONTEND_URL="http://localhost:5173"
+
+
+### Frontend (frontend/.env)
+VITE_API_URL="http://localhost:5000/api"
+
+
+## 5. Design Mockups
+
+Login Page: https://www.figma.com/make/JZM9hEvNEatPsjp8OJYsMR/Pharmacy-Inventory-Management-UI--Community-?fullscreen=1&t=dK11TIePXwUbCyvZ-1
+
+Pharmacist Dashboard: https://www.figma.com/make/XcHPbzm4aTDP5dUYHpiTf5/Pharmacy-Management-System?fullscreen=1&t=dTetfGuN3se4PwUx-1
+
+## 6. Deployment Plan
+
+### 6.1 Staging Environment
+
+- Frontend: Vercel
+- Backend: Railway
+- Database: PostgreSQL (Railway-managed)
+
+### 6.2 Production Deployment
+
+Database Migration:
+Backup existing data
+Run production migrations
+npx prisma migrate deploy
+
+
+Backend Deployment:
+- Push to main branch triggers Railway deployment
+- Environment variables configured in Railway dashboard
+
+Frontend Deployment:
+- Vercel auto-deploys from GitHub
+- Configure API endpoint to production backend
+
+Verification:
+- Run automated tests
+- Manual smoke testing of critical workflows
+- Monitor logs, error rates, and performance metrics
+
+## 7. CI/CD Pipeline
+name: Deploy PharmaLink
+
+on:
+push:
+branches: [main]
+
+jobs:
+test:
+runs-on: ubuntu-latest
+steps:
+
+run: npm test
+
+deploy-backend:
+needs: test
+runs-on: ubuntu-latest
+steps:
+
+run: railway up
+
+deploy-frontend:
+needs: test
+runs-on: ubuntu-latest
+steps:
+
+run: vercel --prod
+
 
 ## 8. Testing Results
 
@@ -210,7 +338,7 @@ Deployment Status: Active and verified on 26 March 2026
 
 ## 13. Video Demo
 
-Demo Video:
+Demo Video: --------------------------------------------
 
 Video Covers:
 - Application overview
