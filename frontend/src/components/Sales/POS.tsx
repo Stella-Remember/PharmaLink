@@ -794,7 +794,7 @@ const POS: React.FC = () => {
           <input
             ref={searchRef}
             type="text"
-            placeholder="🔍  Search medicines..."
+            placeholder="🔎︎  Search medicines..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{flex:1,minWidth:180,padding:'10px 16px',border:`1.5px solid ${border}`,borderRadius:12,fontSize:14,color:text,outline:'none',background:'#FAFAFA'}}

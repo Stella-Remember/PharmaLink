@@ -403,7 +403,7 @@ const InventoryList: React.FC = () => {
                 onClick={handleDownloadExcelTemplate}
                 className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-t-lg"
               >
-                📊 Excel Template (.xlsx)
+                🗂Excel Template (.xlsx)
               </button>
               <button
                 onClick={handleDownloadCSVTemplate}
@@ -424,7 +424,7 @@ const InventoryList: React.FC = () => {
             </label>
             <div className="absolute right-0 mt-1 hidden group-hover:block bg-white border rounded-lg shadow-lg z-10 min-w-40">
               <label className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-t-lg cursor-pointer">
-                📊 Import Excel (.xlsx, .xls)
+                🧾 Import Excel (.xlsx, .xls)
                 <input
                   type="file"
                   accept=".xlsx,.xls"
@@ -459,7 +459,7 @@ const InventoryList: React.FC = () => {
                 disabled={medicines.length === 0}
                 className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-t-lg disabled:opacity-40"
               >
-                📊 Export to Excel (.xlsx)
+                🧾 Export to Excel (.xlsx)
               </button>
               <button
                 onClick={handleExportToCSV}

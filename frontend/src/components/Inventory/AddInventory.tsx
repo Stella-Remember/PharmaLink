@@ -95,8 +95,8 @@ const AddInventoryForm: React.FC<{ onClose: () => void; onSuccess: () => void }>
           </label>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { value: 'GENERIC', label: '🧬 Generic', desc: 'Standard, non-branded formula' },
-              { value: 'PATENTED', label: '® Patented', desc: 'Brand-name, proprietary' },
+              { value: 'GENERIC', label: ' Generic', desc: 'Standard, non-branded formula' },
+              { value: 'PATENTED', label: ' Patented', desc: 'Brand-name, proprietary' },
             ].map(opt => (
               <button key={opt.value} type="button" onClick={() => setType(opt.value)}
                 className={`text-left p-3 rounded-2xl border-2 transition-colors ${
