@@ -85,6 +85,7 @@ const SalesReport: React.FC = () => {
     borderBottom: '1px solid #F8FAFC',
   };
 
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -137,43 +138,27 @@ const SalesReport: React.FC = () => {
           {/* KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
             {[
-              { label: 'Total Sales', value: summary.totalSales.toString(), sub: 'transactions', top: '#4F7CAC', color: '#4F7CAC' },
-              { label: 'Total Revenue', value: `${summary.totalRevenue.toLocaleString()} RWF`, sub: '', top: '#32A287', color: '#32A287' },
-              { label: 'Avg Sale', value: `${Math.round(summary.averageSale).toLocaleString()} RWF`, sub: '', top: '#2E3532', color: '#374151' },
-              { label: 'Claims Amount', value: `${summary.totalClaimsAmount.toLocaleString()} RWF`, sub: '', top: '#D97706', color: '#D97706' },
-              { label: 'Pending Claims', value: summary.pendingClaimsCount.toString(), sub: 'awaiting', top: '#DC2626', color: '#DC2626' },
-            ].map(k => (
-              <div key={k.label} style={{
-                  background: `linear-gradient(135deg, ${k.top}, ${k.top}CC)`,
-                  borderRadius: 12,
-                  padding: '18px',
-                  color: '#fff',
-                   boxShadow: '0 10px 20px rgba(0,0,0,0.05)'
-                }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: k.color }}>
-               {k.value}
-                </div>
-                <div style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: '#6B7280',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.06em',
-                          marginTop: 6
-                      }}>
-                        {k.label}
-                </div>
-                        {k.sub && (
-                <div style={{
-                          fontSize: 11,
-                          color: '#9CA3AF',
-                         marginTop: 2
-                          }}>
-                         {k.sub}
-                </div>
-                  )}
-              </div>
-            ))}
+  { label: 'Total Sales', value: summary.totalSales, color: '#4F7CAC' },
+  { label: 'Total Revenue', value: `${summary.totalRevenue.toLocaleString()} RWF`, color: '#32A287' },
+  { label: 'Average Sale', value: `${Math.round(summary.averageSale).toLocaleString()} RWF`, color: '#374151' },
+  { label: 'Claims Amount', value: `${summary.totalClaimsAmount.toLocaleString()} RWF`, color: '#D97706' },
+  { label: 'Pending Claims', value: summary.pendingClaimsCount, color: '#DC2626' },
+].map(k => (
+  <div key={k.label} style={{
+    backgroundColor: '#ffffff',
+    border: '1px solid #F1F5F9',
+    borderLeft: `4px solid ${k.color}`,
+    borderRadius: 12,
+    padding: 16
+  }}>
+    <div style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>
+      {k.label}
+    </div>
+    <div style={{ fontSize: 22, fontWeight: 700, color: k.color, marginTop: 4 }}>
+      {k.value}
+    </div>
+  </div>
+))}
           </div>
 
           {/* Pharmacist Performance */}

@@ -12,21 +12,50 @@ import api from '../../api/client';
 export type TabType = 'dashboard' | 'stores' | 'users' | 'reports' | 'inventory-report' | 'claims' | 'settings';
 
 interface DashboardStats {
-  totalStores: number; todaySales: number; totalMedicines: number;
-  lowStockCount: number; totalEmployees: number; pendingClaims: number;
+  totalStores: number;
+  todaySales: number;
+  totalMedicines: number;
+  lowStockCount: number;
+  totalEmployees: number;
+  pendingClaims: number;
+  expiredCount?: number;
+  outOfStock?: number;
+  monthRevenue?: number;
 }
 
 interface Store {
-  id: string; name: string; location: string; totalMedicines: number;
-  lowStock: number; todaySales: number; employees: number;
-  pendingClaims: number; status: 'active' | 'inactive';
+  id: string;
+  name: string;
+  location: string;
+  totalMedicines: number;
+  lowStock: number;
+  todaySales: number;
+  employees: number;
+  pendingClaims: number;
+  status: 'active' | 'inactive';
 }
 
 interface InventoryReportItem {
-  id: string; medicineName: string; genericName: string; medicineType: string;
-  category: string; batchNumber: string; expiryDate: string; quantity: number;
-  reorderLevel: number; sellingPrice: number; pharmacyName: string;
+  id: string;
+  medicineName: string;
+  genericName: string;
+  medicineType: string;
+  category: string;
+  batchNumber: string;
+  expiryDate: string;
+  quantity: number;
+  reorderLevel: number;
+  sellingPrice: number;
+  pharmacyName: string;
   status: 'OK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'EXPIRED';
+}
+
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  sub?: string;
+  icon: React.ReactNode;
+  loading: boolean;
 }
 
 const apiFetch = (path: string) => api.get(path).then(r => r.data);
@@ -42,44 +71,57 @@ const Icons = {
   download: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
 };
 
-// Stat card — light style matching palette
-const cardAccents: Record<string, { border: string; value: string }> = {
-  green:  { border: '#32A287', value: '#32A287' },
-  blue:   { border: '#4F7CAC', value: '#4F7CAC' },
-  purple: { border: '#7C3AED', value: '#7C3AED' },
-  indigo: { border: '#4F46E5', value: '#4F46E5' },
-  amber:  { border: '#D97706', value: '#D97706' },
-  red:    { border: '#DC2626', value: '#DC2626' },
-};
-
-const StatCard: React.FC<{
-  label: string; value: string | number; sub?: string;
-  icon: React.ReactNode; accent: string; loading?: boolean;
-}> = ({ label, value, sub, icon, accent, loading }) => {
-  const a = cardAccents[accent] || cardAccents.blue;
+const StatCard: React.FC<StatCardProps> = ({ label, value, sub, icon, loading }) => {
   return (
     <div style={{
       backgroundColor: '#ffffff',
-      border: '1px solid #F1F5F9',
-      borderTop: `3px solid ${a.border}`,
+      border: '1px solid #EEF2F7',
       borderRadius: 12,
-      padding: '18px',
+      padding: 16,
+      minHeight: 95,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between'
     }}>
-      <div style={{
-        width: 34, height: 34, borderRadius: 8,
-        backgroundColor: `${a.border}15`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: a.border, marginBottom: 12,
-      }}>
-        {icon}
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{
+          fontSize: 11,
+          color: '#9CA3AF',
+          fontWeight: 600
+        }}>
+          {label}
+        </div>
+
+        <div style={{ color: '#201E50' }}>
+          {icon}
+        </div>
       </div>
+
       {loading ? (
-        <div style={{ height: 28, width: 80, backgroundColor: '#F1F5F9', borderRadius: 6, marginBottom: 8 }} />
+        <div style={{
+          height: 20,
+          width: 60,
+          backgroundColor: '#F1F5F9',
+          borderRadius: 6
+        }} />
       ) : (
-        <div style={{ fontSize: 24, fontWeight: 700, color: a.value, lineHeight: 1 }}>{value}</div>
+        <div style={{
+          fontSize: 22,
+          fontWeight: 700,
+          color: '#111827'
+        }}>
+          {value}
+        </div>
       )}
-      <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 8 }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: '#C4C9D4', marginTop: 2 }}>{sub}</div>}
+
+      {sub && (
+        <div style={{
+          fontSize: 11,
+          color: '#C4C9D4'
+        }}>
+          {sub}
+        </div>
+      )}
     </div>
   );
 };
@@ -287,13 +329,20 @@ const OwnerDashboard: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <StatCard label="Today's Revenue" loading={statsLoading} value={stats ? `${(stats.todaySales || 0).toLocaleString()} RWF` : '—'} icon={Icons.revenue} accent="green" sub="Sales today" />
-        <StatCard label="Total Stores" loading={statsLoading} value={stats?.totalStores ?? '—'} icon={Icons.stores} accent="blue" />
-        <StatCard label="Medicines" loading={statsLoading} value={stats?.totalMedicines ?? '—'} icon={Icons.medicines} accent="purple" sub="Across all stores" />
-        <StatCard label="Employees" loading={statsLoading} value={stats?.totalEmployees ?? '—'} icon={Icons.users} accent="indigo" />
-        <StatCard label="Low Stock" loading={statsLoading} value={stats?.lowStockCount ?? '—'} icon={Icons.alert} accent="amber" sub={stats?.lowStockCount ? 'Needs restock' : 'All good'} />
-        <StatCard label="Pending Claims" loading={statsLoading} value={stats?.pendingClaims ?? '—'} icon={Icons.claims} accent="red" sub="Insurance" />
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: 14
+      }}>
+        <StatCard label="Revenue Today" loading={statsLoading} value={stats ? `${(stats.todaySales || 0).toLocaleString()} RWF` : '—'} icon={Icons.revenue} sub="Sales today" />
+        <StatCard label="Total Stores" loading={statsLoading} value={stats?.totalStores ?? '—'} icon={Icons.stores} />
+        <StatCard label="Total Medicines" loading={statsLoading} value={stats?.totalMedicines ?? '—'} icon={Icons.medicines} sub="Across all stores" />
+        <StatCard label="Total Employees" loading={statsLoading} value={stats?.totalEmployees ?? '—'} icon={Icons.users} />
+        <StatCard label="Low Stock Items" loading={statsLoading} value={stats?.lowStockCount ?? '—'} icon={Icons.alert} sub={stats?.lowStockCount ? 'Needs restock' : 'All good'} />
+        <StatCard label="Pending Insurance Claims" loading={statsLoading} value={stats?.pendingClaims ?? '—'} icon={Icons.claims} sub="Insurance" />
+        <StatCard label="Expired Medicines" loading={statsLoading} value={stats?.expiredCount ?? '—'} icon={Icons.alert} />
+        <StatCard label="Out of Stock" loading={statsLoading} value={stats?.outOfStock ?? '—'} icon={Icons.alert} />
+        <StatCard label="Revenue This Month" loading={statsLoading} value={stats ? `${(stats.monthRevenue || 0).toLocaleString()} RWF` : '—'} icon={Icons.revenue} />
       </div>
 
       <div className="flex gap-3 flex-wrap">
@@ -310,7 +359,19 @@ const OwnerDashboard: React.FC = () => {
           </button>
         ))}
       </div>
-
+      <div style={{
+        backgroundColor: '#ffffff',
+        border: '1px solid #F1F5F9',
+        borderRadius: 12,
+        padding: 18
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#201E50', marginBottom: 10 }}>
+          Business Overview
+        </div>
+        <div style={{ fontSize: 13, color: '#9CA3AF' }}>
+          Monitor sales, insurance claims, inventory levels, and store performance across your pharmacies.
+        </div>
+      </div>
       <div>
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-sm font-semibold text-gray-800">Your Stores</h3>
