@@ -25,6 +25,56 @@ interface Props {
   onRefresh: () => void;
 }
 
+// Stat Card Component with gradient styling
+const StatCard: React.FC<{
+  label: string;
+  value: string | number;
+  sub?: string;
+  gradientStart: string;
+  gradientEnd: string;
+}> = ({ label, value, sub, gradientStart, gradientEnd }) => {
+  return (
+    <div
+      style={{
+        background: `linear-gradient(135deg, ${gradientStart}, ${gradientEnd})`,
+        borderRadius: 14,
+        padding: '22px',
+        color: '#fff',
+        boxShadow: '0 10px 20px rgba(0,0,0,0.05)',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+        cursor: 'pointer',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-3px)';
+        e.currentTarget.style.boxShadow = '0 14px 24px rgba(0,0,0,0.08)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.05)';
+      }}
+    >
+      <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
+        {value}
+      </div>
+      <div style={{ 
+        fontSize: 11, 
+        fontWeight: 600, 
+        color: 'rgba(255,255,255,0.9)', 
+        marginTop: 8, 
+        textTransform: 'uppercase', 
+        letterSpacing: '0.06em' 
+      }}>
+        {label}
+      </div>
+      {sub && (
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
+          {sub}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const StoresManagement: React.FC<Props> = ({ stores, onRefresh }) => {
   const [showAddStoreModal, setShowAddStoreModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +87,13 @@ const StoresManagement: React.FC<Props> = ({ stores, onRefresh }) => {
     email: '',
     licenseNumber: ''
   });
+
+  // Calculate store statistics
+  const totalStores = stores.length;
+  const activeStores = stores.filter(s => s.status === 'active').length;
+  const totalEmployees = stores.reduce((sum, store) => sum + store.employees, 0);
+  const totalLowStock = stores.reduce((sum, store) => sum + store.lowStock, 0);
+  const totalTodaySales = stores.reduce((sum, store) => sum + store.todaySales, 0);
 
   const filteredStores = stores.filter(store =>
     store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,6 +141,45 @@ const StoresManagement: React.FC<Props> = ({ stores, onRefresh }) => {
           <PlusIcon className="h-5 w-5 mr-2" />
           Add New Store
         </button>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <StatCard
+          label="Total Stores"
+          value={totalStores}
+          sub="All locations"
+          gradientStart="#4F7CAC"
+          gradientEnd="#3A5C84"
+        />
+        <StatCard
+          label="Active Stores"
+          value={activeStores}
+          sub="Currently operating"
+          gradientStart="#32A287"
+          gradientEnd="#268066"
+        />
+        <StatCard
+          label="Total Employees"
+          value={totalEmployees}
+          sub="Staff members"
+          gradientStart="#8B5CF6"
+          gradientEnd="#6D28D9"
+        />
+        <StatCard
+          label="Low Stock Items"
+          value={totalLowStock}
+          sub={totalLowStock > 0 ? "Needs attention" : "All stocked"}
+          gradientStart={totalLowStock > 0 ? "#D97706" : "#32A287"}
+          gradientEnd={totalLowStock > 0 ? "#B45309" : "#268066"}
+        />
+        <StatCard
+          label="Today's Sales"
+          value={`${totalTodaySales.toLocaleString()} RWF`}
+          sub="Across all stores"
+          gradientStart="#10B981"
+          gradientEnd="#059669"
+        />
       </div>
 
       {/* Search */}

@@ -351,6 +351,8 @@ const ClaimsManagement: React.FC = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
+
+  
   const fetchClaims = async () => {
     setLoading(true);
     try {
@@ -417,24 +419,89 @@ const ClaimsManagement: React.FC = () => {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: 'Pending',   status: 'PENDING',   count: counts.PENDING,   amount: totalPending,  color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'Approved',  status: 'APPROVED',  count: counts.APPROVED,  amount: null,           color: 'text-teal-600',  bg: 'bg-teal-50' },
-          { label: 'Processed', status: 'PROCESSED', count: counts.PROCESSED, amount: totalApproved,  color: 'text-blue-600',  bg: 'bg-blue-50' },
-          { label: 'Rejected',  status: 'REJECTED',  count: counts.REJECTED,  amount: null,           color: 'text-red-500',   bg: 'bg-red-50' },
-        ].map(s => (
-          <div key={s.label}
-            onClick={() => setStatusFilter(statusFilter === s.status ? 'all' : s.status)}
-            className={`rounded-xl border border-gray-100 p-4 cursor-pointer hover:shadow-sm transition ${
-              statusFilter === s.status ? 'ring-2 ring-[#1a2235]' : 'bg-white'
-            }`}>
-            <div className={`text-2xl font-semibold ${s.color}`}>{s.count}</div>
-            <div className="text-xs font-medium text-gray-400 uppercase tracking-wide mt-1">{s.label}</div>
-            {s.amount != null && <div className={`text-xs font-medium mt-1 ${s.color}`}>{s.amount.toLocaleString()} RWF</div>}
-          </div>
-        ))}
+    
+<div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {[
+    { 
+      label: 'Pending', 
+      count: counts.PENDING, 
+      amount: totalPending,
+      gradientStart: '#D97706',
+      gradientEnd: '#B45309',
+      sub: 'Awaiting review'
+    },
+    { 
+      label: 'Approved', 
+      count: counts.APPROVED, 
+      amount: null,
+      gradientStart: '#10B981',
+      gradientEnd: '#059669',
+      sub: 'Ready for processing'
+    },
+    { 
+      label: 'Processed', 
+      count: counts.PROCESSED, 
+      amount: totalApproved,
+      gradientStart: '#3B82F6',
+      gradientEnd: '#2563EB',
+      sub: 'Claims completed'
+    },
+    { 
+      label: 'Rejected', 
+      count: counts.REJECTED, 
+      amount: null,
+      gradientStart: '#EF4444',
+      gradientEnd: '#DC2626',
+      sub: 'Requires attention'
+    },
+  ].map(s => (
+    <div
+      key={s.label}
+      onClick={() => setStatusFilter(statusFilter === s.label.toUpperCase() ? 'all' : s.label.toUpperCase())}
+      style={{
+        background: `linear-gradient(135deg, ${s.gradientStart}, ${s.gradientEnd})`,
+        borderRadius: 14,
+        padding: '22px',
+        color: '#fff',
+        boxShadow: '0 10px 20px rgba(0,0,0,0.05)',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+        cursor: 'pointer',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-3px)';
+        e.currentTarget.style.boxShadow = '0 14px 24px rgba(0,0,0,0.08)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.05)';
+      }}
+    >
+      <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
+        {s.count}
       </div>
+      <div style={{ 
+        fontSize: 11, 
+        fontWeight: 600, 
+        color: 'rgba(255,255,255,0.9)', 
+        marginTop: 8, 
+        textTransform: 'uppercase', 
+        letterSpacing: '0.06em' 
+      }}>
+        {s.label}
+      </div>
+      {s.sub && (
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
+          {s.sub}
+        </div>
+      )}
+      {s.amount != null && (
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginTop: 8 }}>
+          {s.amount.toLocaleString()} RWF
+        </div>
+      )}
+    </div>
+  ))}
+</div>
 
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-100 p-3 flex flex-wrap gap-2">

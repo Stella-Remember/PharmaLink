@@ -26,11 +26,62 @@ interface Props {
   stores: Array<{ id: string; name: string }>;
 }
 
+// Stat Card Component with gradient styling
+const StatCard: React.FC<{
+  label: string;
+  value: string | number;
+  sub?: string;
+  gradientStart: string;
+  gradientEnd: string;
+}> = ({ label, value, sub, gradientStart, gradientEnd }) => {
+  return (
+    <div
+      style={{
+        background: `linear-gradient(135deg, ${gradientStart}, ${gradientEnd})`,
+        borderRadius: 14,
+        padding: '22px',
+        color: '#fff',
+        boxShadow: '0 10px 20px rgba(0,0,0,0.05)',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+        cursor: 'pointer',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-3px)';
+        e.currentTarget.style.boxShadow = '0 14px 24px rgba(0,0,0,0.08)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.05)';
+      }}
+    >
+      <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
+        {value}
+      </div>
+      <div style={{ 
+        fontSize: 11, 
+        fontWeight: 600, 
+        color: 'rgba(255,255,255,0.9)', 
+        marginTop: 8, 
+        textTransform: 'uppercase', 
+        letterSpacing: '0.06em' 
+      }}>
+        {label}
+      </div>
+      {sub && (
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
+          {sub}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const UsersManagement: React.FC<Props> = ({ stores }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [storeFilter, setStoreFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addError, setAddError] = useState('');
   const [addLoading, setAddLoading] = useState(false);
@@ -89,12 +140,21 @@ const UsersManagement: React.FC<Props> = ({ stores }) => {
     }
   };
 
+  // Calculate statistics
+  const totalUsers = users.length;
+  const totalPharmacists = users.filter(u => u.role === 'PHARMACIST').length;
+  const totalHelpers = users.filter(u => u.role === 'HELPER').length;
+  const totalManagers = users.filter(u => u.role === 'MANAGER').length;
+  const activeUsers = users.filter(u => u.isActive).length;
+  const inactiveUsers = users.filter(u => !u.isActive).length;
+
   const filteredUsers = users.filter(user => {
     const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role.toLowerCase() === roleFilter.toLowerCase();
-    return matchesSearch && matchesRole;
+    const matchesStore = storeFilter === 'all' || user.pharmacyId === storeFilter;
+    return matchesSearch && matchesRole && matchesStore;
   });
 
   const getRoleColor = (role: string) => {
@@ -123,12 +183,58 @@ const UsersManagement: React.FC<Props> = ({ stores }) => {
         </button>
       </div>
 
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+        <StatCard
+          label="Total Users"
+          value={totalUsers}
+          sub="All staff members"
+          gradientStart="#4F7CAC"
+          gradientEnd="#3A5C84"
+        />
+        <StatCard
+          label="Pharmacists"
+          value={totalPharmacists}
+          sub="Dispensing staff"
+          gradientStart="#3B82F6"
+          gradientEnd="#2563EB"
+        />
+        <StatCard
+          label="Managers"
+          value={totalManagers}
+          sub="Store managers"
+          gradientStart="#8B5CF6"
+          gradientEnd="#6D28D9"
+        />
+        <StatCard
+          label="Helpers"
+          value={totalHelpers}
+          sub="Support staff"
+          gradientStart="#F59E0B"
+          gradientEnd="#D97706"
+        />
+        <StatCard
+          label="Active"
+          value={activeUsers}
+          sub="Currently working"
+          gradientStart="#10B981"
+          gradientEnd="#059669"
+        />
+        <StatCard
+          label="Inactive"
+          value={inactiveUsers}
+          sub="Not active"
+          gradientStart="#EF4444"
+          gradientEnd="#DC2626"
+        />
+      </div>
+
       {/* Filters */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder="Search users by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -143,7 +249,11 @@ const UsersManagement: React.FC<Props> = ({ stores }) => {
             <option value="HELPER">Helper</option>
             <option value="MANAGER">Manager</option>
           </select>
-          <select className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          <select
+            value={storeFilter}
+            onChange={(e) => setStoreFilter(e.target.value)}
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
             <option value="all">All Stores</option>
             {stores.map(store => (
               <option key={store.id} value={store.id}>{store.name}</option>
@@ -152,28 +262,14 @@ const UsersManagement: React.FC<Props> = ({ stores }) => {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
-          <div className="text-2xl font-bold text-gray-800">{users.length}</div>
-          <div className="text-sm text-gray-500">Total Users</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
-          <div className="text-2xl font-bold text-blue-600">{users.filter(u => u.role === 'PHARMACIST').length}</div>
-          <div className="text-sm text-gray-500">Pharmacists</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
-          <div className="text-2xl font-bold text-green-600">{users.filter(u => u.isActive).length}</div>
-          <div className="text-sm text-gray-500">Active</div>
-        </div>
-      </div>
-
       {/* Users Grid */}
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading users...</div>
       ) : filteredUsers.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
-          {searchTerm || roleFilter !== 'all' ? 'No users match your filters.' : 'No users yet. Click "Add New User" to get started.'}
+          {searchTerm || roleFilter !== 'all' || storeFilter !== 'all' ? 
+            'No users match your filters.' : 
+            'No users yet. Click "Add New User" to get started.'}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -201,7 +297,7 @@ const UsersManagement: React.FC<Props> = ({ stores }) => {
               <div className="space-y-2 mb-4">
                 <div className="flex items-center text-sm text-gray-600">
                   <EnvelopeIcon className="h-4 w-4 mr-2 text-gray-400" />
-                  {user.email}
+                  <span className="truncate">{user.email}</span>
                 </div>
                 {user.phone && (
                   <div className="flex items-center text-sm text-gray-600">
