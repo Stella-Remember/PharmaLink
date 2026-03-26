@@ -7,6 +7,7 @@ export interface Medicine {
   id: string;
   name: string;
   genericName?: string;
+  medicineType: 'PATENTED' | 'GENERIC'; 
   category: string;
   batchNumber: string;
   expiryDate: string;

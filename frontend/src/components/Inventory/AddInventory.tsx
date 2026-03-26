@@ -57,6 +57,7 @@ const AddInventoryForm: React.FC<{ onClose: () => void; onSuccess: () => void }>
     try {
       await inventoryAPI.create({
         medicineName: form.medicineName,
+        medicineType: form.medicineType as 'PATENTED' | 'GENERIC', // Include medicine type
         genericName: form.genericName,
         category: form.category,
         manufacturer: form.manufacturer,

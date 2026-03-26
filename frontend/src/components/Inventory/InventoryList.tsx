@@ -5,27 +5,12 @@ import AddInventory from './AddInventory';
 import AdjustStock from './AdjustStock';
 import * as XLSX from 'xlsx';
 
-// Template headers with detailed fields matching your requirements
+// Enhanced template headers with all detailed fields
 const TEMPLATE_HEADERS = [
   'Medicine Type', 'Trade / Brand Name', 'Generic Name', 'Category',
   'Manufacturer', 'Strength', 'Batch Number', 'Expiry Date',
   'Quantity', 'Reorder Level', 'Price (RWF)'
 ];
-
-// API field mapping for import
-const mapImportFields = (row: any) => ({
-  medicineName: row['Trade / Brand Name'] || row.medicineName || '',
-  medicineType: row['Medicine Type'] === '® Patented' ? 'PATENTED' : 'GENERIC',
-  genericName: row['Generic Name'] || '',
-  category: row.Category || '',
-  manufacturer: row.Manufacturer || '',
-  strength: row.Strength || '',
-  batchNumber: row['Batch Number'] || row.batchNumber || '',
-  expiryDate: row['Expiry Date'] || row.expiryDate || '',
-  quantity: parseInt(row.Quantity || row.quantity || 0),
-  reorderLevel: parseInt(row['Reorder Level'] || row.reorderLevel || 0),
-  unitPrice: parseFloat(row['Price (RWF)'] || row.unitPrice || row.sellingPrice || 0)
-});
 
 const InventoryList: React.FC = () => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -88,7 +73,7 @@ const InventoryList: React.FC = () => {
     
     // Auto-size columns
     const colWidths = Object.keys(exportData[0] || {}).map(key => ({
-      wch: Math.max(key.length, 15)
+      wch: Math.max(key.length, 20)
     }));
     ws['!cols'] = colWidths;
     
@@ -243,8 +228,19 @@ const InventoryList: React.FC = () => {
         }
 
         try {
-          const mappedData = mapImportFields(row);
-          await inventoryAPI.create(mappedData);
+          await inventoryAPI.create({
+            medicineName: row['Trade / Brand Name'] || row.medicineName || '',
+            medicineType: row['Medicine Type'] === '® Patented' ? 'PATENTED' : 'GENERIC',
+            genericName: row['Generic Name'] || '',
+            category: row.Category || '',
+            manufacturer: row.Manufacturer || '',
+            strength: row.Strength || '',
+            batchNumber: row['Batch Number'] || row.batchNumber || '',
+            expiryDate: row['Expiry Date'] || row.expiryDate || '',
+            quantity: parseInt(row.Quantity),
+            reorderLevel: parseInt(row['Reorder Level']) || 10,
+            unitPrice: parseFloat(row['Price (RWF)'])
+          });
           successCount++;
         } catch (err: any) {
           const msg = err.response?.data?.message || err.response?.data?.error || 'Failed';
@@ -338,8 +334,19 @@ const InventoryList: React.FC = () => {
       }
 
       try {
-        const mappedData = mapImportFields(row);
-        await inventoryAPI.create(mappedData);
+        await inventoryAPI.create({
+          medicineName: row['Trade / Brand Name'] || row.medicineName || '',
+          medicineType: row['Medicine Type'] === '® Patented' ? 'PATENTED' : 'GENERIC',
+          genericName: row['Generic Name'] || '',
+          category: row.Category || '',
+          manufacturer: row.Manufacturer || '',
+          strength: row.Strength || '',
+          batchNumber: row['Batch Number'] || row.batchNumber || '',
+          expiryDate: row['Expiry Date'] || row.expiryDate || '',
+          quantity: parseInt(row.Quantity),
+          reorderLevel: parseInt(row['Reorder Level']) || 10,
+          unitPrice: parseFloat(row['Price (RWF)'])
+        });
         successCount++;
       } catch (err: any) {
         const msg = err.response?.data?.message || err.response?.data?.error || 'Failed';
@@ -391,7 +398,7 @@ const InventoryList: React.FC = () => {
             >
               📋 Template
             </button>
-            <div className="absolute right-0 mt-1 hidden group-hover:block bg-white border rounded-lg shadow-lg z-10 min-w-36">
+            <div className="absolute right-0 mt-1 hidden group-hover:block bg-white border rounded-lg shadow-lg z-10 min-w-40">
               <button
                 onClick={handleDownloadExcelTemplate}
                 className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-t-lg"
@@ -415,7 +422,7 @@ const InventoryList: React.FC = () => {
             >
               {importing ? '⏳ Importing...' : '⬆️ Import'}
             </label>
-            <div className="absolute right-0 mt-1 hidden group-hover:block bg-white border rounded-lg shadow-lg z-10 min-w-36">
+            <div className="absolute right-0 mt-1 hidden group-hover:block bg-white border rounded-lg shadow-lg z-10 min-w-40">
               <label className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-t-lg cursor-pointer">
                 📊 Import Excel (.xlsx, .xls)
                 <input
@@ -446,7 +453,7 @@ const InventoryList: React.FC = () => {
             >
               ⬇️ Export
             </button>
-            <div className="absolute right-0 mt-1 hidden group-hover:block bg-white border rounded-lg shadow-lg z-10 min-w-36">
+            <div className="absolute right-0 mt-1 hidden group-hover:block bg-white border rounded-lg shadow-lg z-10 min-w-40">
               <button
                 onClick={handleExportToExcel}
                 disabled={medicines.length === 0}
@@ -533,7 +540,7 @@ const InventoryList: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Stock</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Price</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
-                </tr>
+                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredMedicines.map(medicine => {
