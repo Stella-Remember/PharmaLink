@@ -85,6 +85,44 @@ const SalesReport: React.FC = () => {
     borderBottom: '1px solid #F8FAFC',
   };
 
+  // Define card colors matching the second dashboard style
+  const statCards = summary ? [
+    { 
+      label: 'Total Sales', 
+      value: summary.totalSales, 
+      sub: 'total transactions',
+      gradientStart: '#4F7CAC', 
+      gradientEnd: '#3A5C84'
+    },
+    { 
+      label: 'Total Revenue', 
+      value: `${summary.totalRevenue.toLocaleString()} RWF`, 
+      sub: 'collected',
+      gradientStart: '#32A287', 
+      gradientEnd: '#268066'
+    },
+    { 
+      label: 'Average Sale', 
+      value: `${Math.round(summary.averageSale).toLocaleString()} RWF`, 
+      sub: 'per transaction',
+      gradientStart: '#6B7280', 
+      gradientEnd: '#4B5563'
+    },
+    { 
+      label: 'Claims Amount', 
+      value: `${summary.totalClaimsAmount.toLocaleString()} RWF`, 
+      sub: 'total claims',
+      gradientStart: '#D97706', 
+      gradientEnd: '#B45309'
+    },
+    { 
+      label: 'Pending Claims', 
+      value: summary.pendingClaimsCount, 
+      sub: 'awaiting review',
+      gradientStart: '#DC2626', 
+      gradientEnd: '#B91C1C'
+    },
+  ] : [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -135,30 +173,51 @@ const SalesReport: React.FC = () => {
 
       {summary && (
         <>
-          {/* KPI Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
-            {[
-  { label: 'Total Sales', value: summary.totalSales, color: '#4F7CAC' },
-  { label: 'Total Revenue', value: `${summary.totalRevenue.toLocaleString()} RWF`, color: '#32A287' },
-  { label: 'Average Sale', value: `${Math.round(summary.averageSale).toLocaleString()} RWF`, color: '#374151' },
-  { label: 'Claims Amount', value: `${summary.totalClaimsAmount.toLocaleString()} RWF`, color: '#D97706' },
-  { label: 'Pending Claims', value: summary.pendingClaimsCount, color: '#DC2626' },
-].map(k => (
-  <div key={k.label} style={{
-    backgroundColor: '#ffffff',
-    border: '1px solid #F1F5F9',
-    borderLeft: `4px solid ${k.color}`,
-    borderRadius: 12,
-    padding: 16
-  }}>
-    <div style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>
-      {k.label}
-    </div>
-    <div style={{ fontSize: 22, fontWeight: 700, color: k.color, marginTop: 4 }}>
-      {k.value}
-    </div>
-  </div>
-))}
+          {/* KPI Cards - Updated to match second dashboard style */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
+            {statCards.map(card => (
+              <div
+                key={card.label}
+                style={{
+                  background: `linear-gradient(135deg, ${card.gradientStart}, ${card.gradientEnd})`,
+                  borderRadius: 14,
+                  padding: '22px',
+                  color: '#fff',
+                  boxShadow: '0 10px 20px rgba(0,0,0,0.05)',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                  e.currentTarget.style.boxShadow = '0 14px 24px rgba(0,0,0,0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.05)';
+                }}
+              >
+                {loading ? (
+                  <div style={{ height: 32, width: 80, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 6, marginBottom: 8 }} />
+                ) : (
+                  <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
+                    {card.value}
+                  </div>
+                )}
+                <div style={{ 
+                  fontSize: 11, 
+                  fontWeight: 600, 
+                  color: 'rgba(255,255,255,0.9)', 
+                  marginTop: 8, 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.06em' 
+                }}>
+                  {card.label}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
+                  {card.sub}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Pharmacist Performance */}
