@@ -45,13 +45,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const handleLogout = () => { logout(); navigate('/login'); };
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
 
-  const handleLogoError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.style.display = 'none';
-  };
-
   return (
     <div style={{
-      width: 280,
+      width: 240,
       backgroundColor: '#ffffff',
       height: '100vh',
       position: 'fixed',
@@ -60,42 +56,45 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* Logo - Much larger and centered */}
-      <div style={{ 
-        padding: '32px 20px', 
-        borderBottom: '1px solid #F8FAFC', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
+      {/* Logo — balanced size with text */}
+      <div style={{
+        padding: '20px 20px 16px',
+        borderBottom: '1px solid #F8FAFC',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 8,
       }}>
         <img
           src="/logo.png"
           alt="PharmaLink"
-          style={{ 
-            width: 80, 
-            height: 80, 
-            objectFit: 'contain',
-          }}
-          onError={handleLogoError}
+          style={{ width: 52, height: 52, objectFit: 'contain' }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
+        <span style={{ fontWeight: 700, fontSize: 14, color: '#201E50', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          PharmaLink
+        </span>
       </div>
 
       {/* User */}
-      <div style={{ padding: '20px 16px', borderBottom: '1px solid #F8FAFC' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 12px', backgroundColor: '#EFF7FF', borderRadius: 12 }}>
+      <div style={{ padding: '12px 14px', borderBottom: '1px solid #F8FAFC' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 12px', backgroundColor: '#EFF7FF', borderRadius: 10,
+        }}>
           <div style={{
-            width: 40, height: 40, borderRadius: '50%',
+            width: 32, height: 32, borderRadius: '50%',
             backgroundColor: '#201E50', color: 'white',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, fontWeight: 700, flexShrink: 0,
+            fontSize: 11, fontWeight: 700, flexShrink: 0,
           }}>
             {initials || 'PH'}
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#201E50', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#201E50', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.firstName} {user?.lastName}
             </div>
-            <div style={{ fontSize: 11, color: '#4F7CAC', marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: '#4F7CAC', marginTop: 1 }}>
               {user?.role === 'PHARMACIST' ? 'Pharmacist' : 'Owner'}
             </div>
           </div>
@@ -103,11 +102,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, padding: '20px 12px', overflowY: 'auto' }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.12em', padding: '0 10px', marginBottom: 16 }}>
+      <nav style={{ flex: 1, padding: '14px 10px', overflowY: 'auto' }}>
+        <p style={{
+          fontSize: 9, fontWeight: 700, color: '#9CA3AF',
+          textTransform: 'uppercase', letterSpacing: '0.12em',
+          margin: '0 0 10px 10px',
+        }}>
           Main Menu
         </p>
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           {menuItems.map(item => {
             const isActive = activeTab === item.id;
             return (
@@ -115,14 +118,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
                 <button
                   onClick={() => handleTabClick(item.id)}
                   style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 12px', borderRadius: 10,
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '9px 10px', borderRadius: 8,
                     backgroundColor: isActive ? '#EFF7FF' : 'transparent',
                     color: isActive ? '#32A287' : '#6B7280',
                     border: 'none', cursor: 'pointer',
-                    fontSize: 14, fontWeight: isActive ? 600 : 500,
-                    transition: 'all 0.12s', textAlign: 'left',
+                    fontSize: 13, fontWeight: isActive ? 600 : 500,
+                    transition: 'background-color 0.12s', textAlign: 'left',
                   }}
+                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#F8FAFC'; }}
+                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}
                 >
                   <span style={{ color: isActive ? '#32A287' : '#9CA3AF', flexShrink: 0 }}>{item.icon}</span>
                   {item.label}
@@ -134,25 +139,25 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       </nav>
 
       {/* Logout */}
-      <div style={{ padding: '20px 12px', borderTop: '1px solid #F8FAFC' }}>
+      <div style={{ padding: '10px', borderTop: '1px solid #F8FAFC' }}>
         <button
           onClick={handleLogout}
           style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-            padding: '12px 12px', borderRadius: 10, border: 'none',
+            width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+            padding: '9px 10px', borderRadius: 8, border: 'none',
             backgroundColor: 'transparent', color: '#9CA3AF',
-            cursor: 'pointer', fontSize: 14, fontWeight: 500, transition: 'all 0.12s',
+            cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.12s',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#FEF2F2';
-            e.currentTarget.style.color = '#DC2626';
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#FEF2F2';
+            (e.currentTarget as HTMLButtonElement).style.color = '#EF4444';
           }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#9CA3AF';
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+            (e.currentTarget as HTMLButtonElement).style.color = '#9CA3AF';
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
           </svg>

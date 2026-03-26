@@ -53,8 +53,8 @@ const Register: React.FC = () => {
   };
 
   const inputStyles = {
-    input: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#1a2235', fontSize: '1rem', padding: '12px' },
-    label: { color: '#374151', fontWeight: 600, fontSize: '0.95rem', marginBottom: 6 },
+    input: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#1a2235', height: 44 },
+    label: { color: '#374151', fontWeight: 500, fontSize: '0.875rem', marginBottom: 4 },
   };
 
   return (
@@ -64,36 +64,28 @@ const Register: React.FC = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '24px 0',
+      padding: '32px 16px',
     }}>
-      <Container size="sm" style={{ width: '100%' }}>
-        <Paper radius="xl" p={40} style={{
+      <Container size={540} style={{ width: '100%' }}>
+        <Paper radius={16} p={40} style={{
           backgroundColor: 'white',
           border: '1px solid #E8F0FE',
           boxShadow: '0 4px 24px rgba(50, 162, 135, 0.08)',
         }}>
-          <Stack gap="lg">
-            {/* Brand - Much larger logo */}
-            <Box ta="center">
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 16,
-              }}>
-                <img 
-                  src="/logo.png" 
-                  alt="PharmaLink" 
-                  style={{ 
-                    width: 120, 
-                    height: 120, 
-                    objectFit: 'contain',
-                  }} 
-                />
-              </div>
+          <Stack gap="md">
+            {/* Logo */}
+            <Box ta="center" mb={4}>
+              <img
+                src="/logo.png"
+                alt="PharmaLink"
+                style={{ width: 72, height: 72, objectFit: 'contain', display: 'block', margin: '0 auto 10px' }}
+              />
+              <Text fw={700} size="sm" style={{ color: '#201E50', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                PharmaLink
+              </Text>
             </Box>
 
-            <Title order={3} fw={600} ta="center" style={{ color: '#1a2235', fontSize: '1.8rem' }}>
+            <Title order={2} fw={600} ta="center" style={{ color: '#201E50', fontSize: '1.4rem', marginBottom: 4 }}>
               Create your pharmacy account
             </Title>
 
@@ -106,9 +98,8 @@ const Register: React.FC = () => {
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleChange}
-                    leftSection={<IconUser size={18} color="#9CA3AF" />}
+                    leftSection={<IconUser size={16} color="#9CA3AF" />}
                     required
-                    size="lg"
                     styles={inputStyles}
                   />
                   <TextInput
@@ -117,9 +108,8 @@ const Register: React.FC = () => {
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleChange}
-                    leftSection={<IconUser size={18} color="#9CA3AF" />}
+                    leftSection={<IconUser size={16} color="#9CA3AF" />}
                     required
-                    size="lg"
                     styles={inputStyles}
                   />
                 </Group>
@@ -130,9 +120,8 @@ const Register: React.FC = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  leftSection={<IconMail size={18} color="#9CA3AF" />}
+                  leftSection={<IconMail size={16} color="#9CA3AF" />}
                   required
-                  size="lg"
                   styles={inputStyles}
                 />
 
@@ -142,9 +131,8 @@ const Register: React.FC = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  leftSection={<IconLock size={18} color="#9CA3AF" />}
+                  leftSection={<IconLock size={16} color="#9CA3AF" />}
                   required
-                  size="lg"
                   styles={inputStyles}
                 />
 
@@ -154,9 +142,8 @@ const Register: React.FC = () => {
                   name="pharmacyName"
                   value={formData.pharmacyName}
                   onChange={handleChange}
-                  leftSection={<IconBuilding size={18} color="#9CA3AF" />}
+                  leftSection={<IconBuilding size={16} color="#9CA3AF" />}
                   required
-                  size="lg"
                   styles={inputStyles}
                 />
 
@@ -166,9 +153,8 @@ const Register: React.FC = () => {
                   name="licenseNumber"
                   value={formData.licenseNumber}
                   onChange={handleChange}
-                  leftSection={<IconLicense size={18} color="#9CA3AF" />}
+                  leftSection={<IconLicense size={16} color="#9CA3AF" />}
                   required
-                  size="lg"
                   styles={inputStyles}
                 />
 
@@ -181,21 +167,20 @@ const Register: React.FC = () => {
                 <Button
                   type="submit"
                   fullWidth
-                  size="lg"
                   loading={isLoading}
                   style={{
                     backgroundColor: '#32A287',
-                    height: 52,
-                    borderRadius: 10,
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    marginTop: 8,
+                    height: 44,
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    marginTop: 4,
                   }}
                 >
                   {isLoading ? 'Creating account...' : 'Register Pharmacy'}
                 </Button>
 
-                <Text ta="center" size="md" style={{ color: '#6B7280' }}>
+                <Text ta="center" size="sm" style={{ color: '#6B7280' }}>
                   Already have an account?{' '}
                   <a href="/login" style={{ color: '#32A287', textDecoration: 'none', fontWeight: 600 }}>
                     Sign in

@@ -47,35 +47,28 @@ const Login: React.FC = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      padding: '24px 16px',
     }}>
-      <Container size="xs" style={{ width: '100%' }}>
-        <Paper radius="xl" p={40} style={{
+      <Container size={480} style={{ width: '100%' }}>
+        <Paper radius={16} p={40} style={{
           backgroundColor: 'white',
           border: '1px solid #E8F0FE',
           boxShadow: '0 4px 24px rgba(50, 162, 135, 0.08)',
         }}>
-          <Stack gap="lg">
-            {/* Brand - Much larger logo */}
-            <Box ta="center" mb={4}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 16,
-              }}>
-                <img 
-                  src="/logo.png" 
-                  alt="PharmaLink" 
-                  style={{ 
-                    width: 140, 
-                    height: 140, 
-                    objectFit: 'contain',
-                  }} 
-                />
-              </div>
+          <Stack gap="md">
+            {/* Logo */}
+            <Box ta="center" mb={8}>
+              <img
+                src="/logo.png"
+                alt="PharmaLink"
+                style={{ width: 80, height: 80, objectFit: 'contain', display: 'block', margin: '0 auto 12px' }}
+              />
+              <Text fw={700} size="sm" style={{ color: '#201E50', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                PharmaLink
+              </Text>
             </Box>
 
-            <Title order={3} fw={600} ta="center" style={{ color: '#1a2235', fontSize: '1.8rem' }}>
+            <Title order={2} fw={600} ta="center" style={{ color: '#201E50', fontSize: '1.5rem', marginBottom: 4 }}>
               Sign in to your account
             </Title>
 
@@ -94,11 +87,10 @@ const Login: React.FC = () => {
                   onChange={(e) => { setEmail(e.target.value); setValidationErrors({ ...validationErrors, email: undefined }); }}
                   error={validationErrors.email}
                   required
-                  size="lg"
-                  leftSection={<IconMail size={18} color="#9CA3AF" />}
+                  leftSection={<IconMail size={16} color="#9CA3AF" />}
                   styles={{
-                    input: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#1a2235', fontSize: '1rem', padding: '12px', '&:focus': { borderColor: '#32A287' } },
-                    label: { color: '#374151', fontWeight: 600, fontSize: '0.95rem', marginBottom: 6 },
+                    input: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#1a2235', height: 44 },
+                    label: { color: '#374151', fontWeight: 500, fontSize: '0.875rem', marginBottom: 4 },
                   }}
                 />
 
@@ -109,26 +101,24 @@ const Login: React.FC = () => {
                   onChange={(e) => { setPassword(e.target.value); setValidationErrors({ ...validationErrors, password: undefined }); }}
                   error={validationErrors.password}
                   required
-                  size="lg"
-                  leftSection={<IconLock size={18} color="#9CA3AF" />}
+                  leftSection={<IconLock size={16} color="#9CA3AF" />}
                   styles={{
-                    input: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#1a2235', fontSize: '1rem', padding: '12px' },
-                    label: { color: '#374151', fontWeight: 600, fontSize: '0.95rem', marginBottom: 6 },
+                    input: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#1a2235', height: 44 },
+                    label: { color: '#374151', fontWeight: 500, fontSize: '0.875rem', marginBottom: 4 },
                   }}
                 />
 
                 <Button
                   fullWidth
                   type="submit"
-                  size="lg"
                   loading={isLoading}
                   style={{
                     backgroundColor: '#32A287',
-                    height: 52,
-                    borderRadius: 10,
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    marginTop: 8,
+                    height: 44,
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    marginTop: 4,
                   }}
                 >
                   {isLoading ? 'Signing in...' : 'Sign In'}
@@ -136,15 +126,15 @@ const Login: React.FC = () => {
               </Stack>
             </form>
 
-            <Text ta="center" size="md" style={{ color: '#6B7280' }}>
+            <Text ta="center" size="sm" style={{ color: '#6B7280' }}>
               Don't have an account?{' '}
               <a href="/register" style={{ color: '#32A287', textDecoration: 'none', fontWeight: 600 }}>
                 Create account
               </a>
             </Text>
 
-            <Flex align="center" justify="center" gap="xs" pt="md" style={{ borderTop: '1px solid #F3F4F6' }}>
-              <IconShieldLock size={14} color="#9CA3AF" />
+            <Flex align="center" justify="center" gap="xs" pt="sm" style={{ borderTop: '1px solid #F3F4F6' }}>
+              <IconShieldLock size={13} color="#9CA3AF" />
               <Text size="xs" style={{ color: '#9CA3AF' }}>
                 Secured with pharmaceutical-grade encryption
               </Text>
