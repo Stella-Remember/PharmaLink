@@ -55,28 +55,27 @@ const Login: React.FC = () => {
           boxShadow: '0 4px 24px rgba(50, 162, 135, 0.08)',
         }}>
           <Stack gap="lg">
-            {/* Brand - Enlarged logo, removed PharmaLink text */}
+            {/* Brand - Much larger logo */}
             <Box ta="center" mb={4}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: 24,
+                marginBottom: 16,
               }}>
                 <img 
                   src="/logo.png" 
                   alt="PharmaLink" 
                   style={{ 
-                    width: 100, 
-                    height: 100, 
+                    width: 140, 
+                    height: 140, 
                     objectFit: 'contain',
                   }} 
                 />
               </div>
-              {/* Removed PharmaLink title and Pharmacy Management System text */}
             </Box>
 
-            <Title order={3} fw={600} ta="center" style={{ color: '#1a2235' }}>
+            <Title order={3} fw={600} ta="center" style={{ color: '#1a2235', fontSize: '1.8rem' }}>
               Sign in to your account
             </Title>
 
@@ -95,10 +94,11 @@ const Login: React.FC = () => {
                   onChange={(e) => { setEmail(e.target.value); setValidationErrors({ ...validationErrors, email: undefined }); }}
                   error={validationErrors.email}
                   required
-                  leftSection={<IconMail size={16} color="#9CA3AF" />}
+                  size="lg"
+                  leftSection={<IconMail size={18} color="#9CA3AF" />}
                   styles={{
-                    input: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#1a2235', '&:focus': { borderColor: '#32A287' } },
-                    label: { color: '#374151', fontWeight: 500, fontSize: '0.875rem' },
+                    input: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#1a2235', fontSize: '1rem', padding: '12px', '&:focus': { borderColor: '#32A287' } },
+                    label: { color: '#374151', fontWeight: 600, fontSize: '0.95rem', marginBottom: 6 },
                   }}
                 />
 
@@ -109,25 +109,26 @@ const Login: React.FC = () => {
                   onChange={(e) => { setPassword(e.target.value); setValidationErrors({ ...validationErrors, password: undefined }); }}
                   error={validationErrors.password}
                   required
-                  leftSection={<IconLock size={16} color="#9CA3AF" />}
+                  size="lg"
+                  leftSection={<IconLock size={18} color="#9CA3AF" />}
                   styles={{
-                    input: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#1a2235' },
-                    label: { color: '#374151', fontWeight: 500, fontSize: '0.875rem' },
+                    input: { borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#1a2235', fontSize: '1rem', padding: '12px' },
+                    label: { color: '#374151', fontWeight: 600, fontSize: '0.95rem', marginBottom: 6 },
                   }}
                 />
 
                 <Button
                   fullWidth
                   type="submit"
-                  size="md"
+                  size="lg"
                   loading={isLoading}
                   style={{
                     backgroundColor: '#32A287',
-                    height: 46,
+                    height: 52,
                     borderRadius: 10,
-                    fontWeight: 600,
-                    fontSize: '0.95rem',
-                    marginTop: 4,
+                    fontWeight: 700,
+                    fontSize: '1rem',
+                    marginTop: 8,
                   }}
                 >
                   {isLoading ? 'Signing in...' : 'Sign In'}
@@ -135,7 +136,7 @@ const Login: React.FC = () => {
               </Stack>
             </form>
 
-            <Text ta="center" size="sm" style={{ color: '#6B7280' }}>
+            <Text ta="center" size="md" style={{ color: '#6B7280' }}>
               Don't have an account?{' '}
               <a href="/register" style={{ color: '#32A287', textDecoration: 'none', fontWeight: 600 }}>
                 Create account
