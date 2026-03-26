@@ -63,13 +63,31 @@ const PharmacistDashboard: React.FC = () => {
         {/* Stat Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
           {cards.map(card => (
-            <div key={card.label} style={{ backgroundColor: '#fff', border: '1px solid #F1F5F9', borderTop: `3px solid ${card.top}`, borderRadius: 12, padding: '20px 20px 16px' }}>
+            <div
+  key={card.label}
+  style={{
+    background: `linear-gradient(135deg, ${card.top}, ${card.top}CC)`,
+    borderRadius: 14,
+    padding: '22px',
+    color: '#fff',
+    boxShadow: '0 10px 20px rgba(0,0,0,0.05)',
+    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.transform = 'translateY(-3px)';
+    e.currentTarget.style.boxShadow = '0 14px 24px rgba(0,0,0,0.08)';
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.transform = 'translateY(0)';
+    e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.05)';
+  }}
+>
               {loading
                 ? <div style={{ height: 32, width: 80, backgroundColor: '#F1F5F9', borderRadius: 6, marginBottom: 8 }} />
-                : <div style={{ fontSize: 26, fontWeight: 700, color: card.val, lineHeight: 1 }}>{card.value}</div>
+                : <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{card.value}</div>
               }
-              <div style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{card.label}</div>
-              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{card.sub}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{card.label}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{card.sub}</div>
             </div>
           ))}
         </div>
@@ -77,7 +95,7 @@ const PharmacistDashboard: React.FC = () => {
         {/* Tables */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
           {/* Low Stock */}
-          <div style={{ backgroundColor: '#fff', border: '1px solid #F1F5F9', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#fff', border: '1px solid #F1F5F9', borderRadius: 14, overflow: 'hidden' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid #F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#201E50' }}>Low Stock Alerts</div>

@@ -120,11 +120,11 @@ const OwnerLayout: React.FC<OwnerLayoutProps> = ({ children, activeTab, onTabCha
                 <li key={item.id}>
                   <button
                     onClick={() => onTabChange(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium border-l-2 ${
-                      isActive
-                        ? 'bg-teal-50 text-teal-600 border-teal-500'
-                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800 border-transparent'
-                    }`}>
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+  isActive
+    ? 'bg-[#EFF7FF] text-[#4F7CAC] shadow-sm'
+    : 'text-gray-500 hover:bg-gray-50 hover:text-[#201E50]'
+}`}>
                     <span className={isActive ? 'text-teal-600' : 'text-gray-400'}>
                       {item.icon}
                     </span>

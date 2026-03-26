@@ -4,21 +4,18 @@ import { salesAPI } from '../../api/sales';
 
 interface Pharmacist { id: string; name: string; email: string; }
 interface SummaryData {
-  totalSales: number;
-  totalRevenue: number;
-  totalClaimsAmount: number;
-  pendingClaimsCount: number;
-  averageSale: number;
+  totalSales: number; totalRevenue: number;
+  totalClaimsAmount: number; pendingClaimsCount: number; averageSale: number;
 }
 interface PharmacistStat { name: string; sales: number; revenue: number; claims: number; }
 interface SaleRow { id: string; invoiceNumber: string; total: number; createdAt: string; user: { firstName: string; lastName: string }; items: any[]; }
 interface ClaimRow { id: string; claimNumber: string; amount: number; status: string; createdAt: string; user: { firstName: string; lastName: string }; notes?: string; }
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-amber-100 text-amber-700',
-  APPROVED: 'bg-green-100 text-green-700',
-  REJECTED: 'bg-red-100 text-red-700',
-  PROCESSED: 'bg-blue-100 text-blue-700',
+const STATUS_COLORS: Record<string, { bg: string; color: string; border: string }> = {
+  PENDING:   { bg: '#FFFBEB', color: '#D97706', border: '#FDE68A' },
+  APPROVED:  { bg: '#F0FDF4', color: '#16A34A', border: '#86EFAC' },
+  REJECTED:  { bg: '#FEF2F2', color: '#DC2626', border: '#FCA5A5' },
+  PROCESSED: { bg: '#EFF6FF', color: '#2563EB', border: '#93C5FD' },
 };
 
 const SalesReport: React.FC = () => {
@@ -44,7 +41,6 @@ const SalesReport: React.FC = () => {
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
       if (selectedPharmacist) params.set('pharmacistId', selectedPharmacist);
-
       const res = await salesAPI.getReport(params);
       const data = res.data;
       setSummary(data.summary);
@@ -52,23 +48,14 @@ const SalesReport: React.FC = () => {
       setSales(data.sales || []);
       setClaims(data.claims || []);
       setPharmacists(data.pharmacists || []);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
   const exportCSV = () => {
     const rows = [
       ['Invoice', 'Date', 'Pharmacist', 'Items', 'Total (RWF)'],
-      ...sales.map(s => [
-        s.invoiceNumber,
-        new Date(s.createdAt).toLocaleDateString(),
-        `${s.user.firstName} ${s.user.lastName}`,
-        s.items.length,
-        s.total
-      ])
+      ...sales.map(s => [s.invoiceNumber, new Date(s.createdAt).toLocaleDateString(), `${s.user.firstName} ${s.user.lastName}`, s.items.length, s.total])
     ];
     const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -82,89 +69,116 @@ const SalesReport: React.FC = () => {
     try { return notes ? JSON.parse(notes) : null; } catch { return null; }
   };
 
+  const inputStyle: React.CSSProperties = {
+    padding: '8px 12px', border: '1px solid #E5E7EB', borderRadius: 8,
+    fontSize: 13, color: '#374151', backgroundColor: '#F9FAFB', outline: 'none',
+  };
+
+  const thStyle: React.CSSProperties = {
+    padding: '10px 16px', textAlign: 'left', fontSize: 10,
+    fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase',
+    letterSpacing: '0.06em', borderBottom: '1px solid #F1F5F9',
+  };
+
+  const tdStyle: React.CSSProperties = {
+    padding: '12px 16px', fontSize: 13, color: '#374151',
+    borderBottom: '1px solid #F8FAFC',
+  };
+
   return (
-    <div className="space-y-5">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
       {/* Header */}
-      <div className="flex justify-between items-start flex-wrap gap-3">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 className="text-2xl font-black text-gray-900">Sales & Claims Report</h2>
-          <p className="text-gray-400 text-sm mt-0.5">Track what each pharmacist sold and all insurance claims</p>
+          <h2 style={{ fontSize: 20, fontWeight: 600, color: '#201E50', margin: 0 }}>Sales & Claims Report</h2>
+          <p style={{ fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>Track revenue and insurance claims by pharmacist</p>
         </div>
-        <button onClick={exportCSV} className="px-4 py-2 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700">
-          ⬇️ Export CSV
+        <button onClick={exportCSV} style={{
+          padding: '8px 16px', backgroundColor: '#32A287', color: 'white',
+          border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export CSV
         </button>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 items-end">
+      <div style={{ backgroundColor: '#ffffff', border: '1px solid #F1F5F9', borderRadius: 12, padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
         <div>
-          <label className="block text-xs font-bold text-gray-400 uppercase mb-1">From</label>
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-xl text-sm" />
+          <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>From</label>
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
         </div>
         <div>
-          <label className="block text-xs font-bold text-gray-400 uppercase mb-1">To</label>
-          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-xl text-sm" />
+          <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>To</label>
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inputStyle} />
         </div>
         <div>
-          <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Pharmacist</label>
-          <select value={selectedPharmacist} onChange={e => setSelectedPharmacist(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-xl text-sm min-w-40">
+          <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Pharmacist</label>
+          <select value={selectedPharmacist} onChange={e => setSelectedPharmacist(e.target.value)} style={{ ...inputStyle, minWidth: 160 }}>
             <option value="">All Pharmacists</option>
             {pharmacists.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
-        <button onClick={fetchReport} disabled={loading}
-          className="px-5 py-2 bg-gray-950 text-white rounded-xl font-bold text-sm hover:bg-gray-800 disabled:opacity-50">
-          {loading ? '⏳ Loading...' : '🔍 Apply Filters'}
+        <button onClick={fetchReport} disabled={loading} style={{
+          padding: '8px 20px', backgroundColor: '#201E50', color: 'white',
+          border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600,
+          cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1,
+        }}>
+          {loading ? 'Loading...' : 'Apply Filters'}
         </button>
       </div>
 
       {summary && (
         <>
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
             {[
-              { label: 'Total Sales', value: summary.totalSales, suffix: 'transactions', color: 'bg-blue-50 text-blue-700' },
-              { label: 'Total Revenue', value: `${summary.totalRevenue.toLocaleString()} RWF`, suffix: '', color: 'bg-green-50 text-green-700' },
-              { label: 'Avg Sale', value: `${Math.round(summary.averageSale).toLocaleString()} RWF`, suffix: '', color: 'bg-purple-50 text-purple-700' },
-              { label: 'Claims Amount', value: `${summary.totalClaimsAmount.toLocaleString()} RWF`, suffix: '', color: 'bg-amber-50 text-amber-700' },
-              { label: 'Pending Claims', value: summary.pendingClaimsCount, suffix: 'awaiting', color: 'bg-red-50 text-red-700' },
+              { label: 'Total Sales', value: summary.totalSales.toString(), sub: 'transactions', top: '#4F7CAC', color: '#4F7CAC' },
+              { label: 'Total Revenue', value: `${summary.totalRevenue.toLocaleString()} RWF`, sub: '', top: '#32A287', color: '#32A287' },
+              { label: 'Avg Sale', value: `${Math.round(summary.averageSale).toLocaleString()} RWF`, sub: '', top: '#2E3532', color: '#374151' },
+              { label: 'Claims Amount', value: `${summary.totalClaimsAmount.toLocaleString()} RWF`, sub: '', top: '#D97706', color: '#D97706' },
+              { label: 'Pending Claims', value: summary.pendingClaimsCount.toString(), sub: 'awaiting', top: '#DC2626', color: '#DC2626' },
             ].map(k => (
-              <div key={k.label} className={`rounded-2xl p-4 ${k.color}`}>
-                <div className="text-2xl font-black">{k.value}</div>
-                <div className="text-xs font-semibold mt-1 opacity-70 uppercase tracking-wide">{k.label}</div>
-                {k.suffix && <div className="text-xs opacity-50">{k.suffix}</div>}
+              <div key={k.label} style={{
+                backgroundColor: '#ffffff', border: '1px solid #F1F5F9',
+                borderTop: `3px solid ${k.top}`, borderRadius: 12, padding: '16px',
+              }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: k.color }}>{k.value}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>{k.label}</div>
+                {k.sub && <div style={{ fontSize: 11, color: '#C4C9D4', marginTop: 2 }}>{k.sub}</div>}
               </div>
             ))}
           </div>
 
-          {/* Per-pharmacist breakdown */}
+          {/* Pharmacist Performance */}
           {byPharmacist.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100">
-                <h3 className="font-black text-gray-800">Performance by Pharmacist</h3>
+            <div style={{ backgroundColor: '#ffffff', border: '1px solid #F1F5F9', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid #F8FAFC' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#201E50' }}>Performance by Pharmacist</div>
               </div>
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-black text-gray-400 uppercase">Pharmacist</th>
-                    <th className="px-4 py-2 text-center text-xs font-black text-gray-400 uppercase">Sales</th>
-                    <th className="px-4 py-2 text-right text-xs font-black text-gray-400 uppercase">Revenue</th>
-                    <th className="px-4 py-2 text-center text-xs font-black text-gray-400 uppercase">Claims Filed</th>
+                    <th style={thStyle}>Pharmacist</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Sales</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Revenue</th>
+                    <th style={{ ...thStyle, textAlign: 'center' }}>Claims Filed</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody>
                   {byPharmacist.map((p, i) => (
-                    <tr key={i} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-bold text-gray-800">{p.name}</td>
-                      <td className="px-4 py-3 text-center text-gray-600">{p.sales}</td>
-                      <td className="px-4 py-3 text-right font-black text-gray-900">{p.revenue.toLocaleString()} RWF</td>
-                      <td className="px-4 py-3 text-center">
+                    <tr key={i}>
+                      <td style={{ ...tdStyle, fontWeight: 600 }}>{p.name}</td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>{p.sales}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: '#32A287' }}>{p.revenue.toLocaleString()} RWF</td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>
                         {p.claims > 0
-                          ? <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs font-bold">{p.claims}</span>
-                          : <span className="text-gray-300">—</span>
+                          ? <span style={{ fontSize: 11, fontWeight: 700, color: '#D97706', backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', padding: '2px 8px', borderRadius: 20 }}>{p.claims}</span>
+                          : <span style={{ color: '#D1D5DB' }}>—</span>
                         }
                       </td>
                     </tr>
@@ -174,14 +188,17 @@ const SalesReport: React.FC = () => {
             </div>
           )}
 
-          {/* Tabs: Sales / Claims */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex border-b border-gray-100">
+          {/* Tabs */}
+          <div style={{ backgroundColor: '#ffffff', border: '1px solid #F1F5F9', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid #F1F5F9' }}>
               {(['overview', 'sales', 'claims'] as const).map(tab => (
-                <button key={tab} onClick={() => setActiveTab(tab)}
-                  className={`px-5 py-3 text-sm font-bold capitalize transition ${
-                    activeTab === tab ? 'border-b-2 border-gray-900 text-gray-900' : 'text-gray-400 hover:text-gray-600'
-                  }`}>
+                <button key={tab} onClick={() => setActiveTab(tab)} style={{
+                  padding: '12px 20px', fontSize: 13, fontWeight: activeTab === tab ? 600 : 500,
+                  color: activeTab === tab ? '#201E50' : '#9CA3AF',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  borderBottom: activeTab === tab ? '2px solid #201E50' : '2px solid transparent',
+                  marginBottom: -1, transition: 'all 0.15s',
+                }}>
                   {tab === 'sales' ? `Sales (${sales.length})` : tab === 'claims' ? `Claims (${claims.length})` : 'Overview'}
                 </button>
               ))}
@@ -189,29 +206,29 @@ const SalesReport: React.FC = () => {
 
             {/* Sales table */}
             {activeTab === 'sales' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-100">
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-black text-gray-400 uppercase">Invoice</th>
-                      <th className="px-4 py-2 text-left text-xs font-black text-gray-400 uppercase">Date</th>
-                      <th className="px-4 py-2 text-left text-xs font-black text-gray-400 uppercase">Pharmacist</th>
-                      <th className="px-4 py-2 text-center text-xs font-black text-gray-400 uppercase">Items</th>
-                      <th className="px-4 py-2 text-right text-xs font-black text-gray-400 uppercase">Total</th>
+                      <th style={thStyle}>Invoice</th>
+                      <th style={thStyle}>Date</th>
+                      <th style={thStyle}>Pharmacist</th>
+                      <th style={{ ...thStyle, textAlign: 'center' }}>Items</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody>
                     {sales.map(s => (
-                      <tr key={s.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-mono text-xs text-gray-600">{s.invoiceNumber}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{new Date(s.createdAt).toLocaleString()}</td>
-                        <td className="px-4 py-3 font-medium text-gray-800">{s.user.firstName} {s.user.lastName}</td>
-                        <td className="px-4 py-3 text-center text-gray-500">{s.items.length}</td>
-                        <td className="px-4 py-3 text-right font-black text-gray-900">{s.total.toLocaleString()} RWF</td>
+                      <tr key={s.id}>
+                        <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 12, color: '#6B7280' }}>{s.invoiceNumber}</td>
+                        <td style={{ ...tdStyle, color: '#6B7280' }}>{new Date(s.createdAt).toLocaleString()}</td>
+                        <td style={{ ...tdStyle, fontWeight: 500 }}>{s.user.firstName} {s.user.lastName}</td>
+                        <td style={{ ...tdStyle, textAlign: 'center', color: '#6B7280' }}>{s.items.length}</td>
+                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#201E50' }}>{s.total.toLocaleString()} RWF</td>
                       </tr>
                     ))}
                     {sales.length === 0 && (
-                      <tr><td colSpan={5} className="px-4 py-10 text-center text-gray-300">No sales in this period</td></tr>
+                      <tr><td colSpan={5} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '40px' }}>No sales in this period</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -220,33 +237,34 @@ const SalesReport: React.FC = () => {
 
             {/* Claims table */}
             {activeTab === 'claims' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-100">
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-black text-gray-400 uppercase">Claim #</th>
-                      <th className="px-4 py-2 text-left text-xs font-black text-gray-400 uppercase">Patient</th>
-                      <th className="px-4 py-2 text-left text-xs font-black text-gray-400 uppercase">Provider</th>
-                      <th className="px-4 py-2 text-left text-xs font-black text-gray-400 uppercase">Pharmacist</th>
-                      <th className="px-4 py-2 text-right text-xs font-black text-gray-400 uppercase">Amount</th>
-                      <th className="px-4 py-2 text-center text-xs font-black text-gray-400 uppercase">Status</th>
+                      <th style={thStyle}>Claim #</th>
+                      <th style={thStyle}>Patient</th>
+                      <th style={thStyle}>Provider</th>
+                      <th style={thStyle}>Pharmacist</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Amount</th>
+                      <th style={{ ...thStyle, textAlign: 'center' }}>Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody>
                     {claims.map(c => {
                       const notes = parseClaimNotes(c.notes);
+                      const s = STATUS_COLORS[c.status] || { bg: '#F9FAFB', color: '#6B7280', border: '#E5E7EB' };
                       return (
-                        <tr key={c.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-mono text-xs text-gray-600">{c.claimNumber}</td>
-                          <td className="px-4 py-3">
-                            <div className="font-medium text-gray-800">{notes?.patientName || '—'}</div>
-                            {notes?.patientId && <div className="text-xs text-gray-400">ID: {notes.patientId}</div>}
+                        <tr key={c.id}>
+                          <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 12, color: '#6B7280' }}>{c.claimNumber}</td>
+                          <td style={tdStyle}>
+                            <div style={{ fontWeight: 500 }}>{notes?.patientName || '—'}</div>
+                            {notes?.patientId && <div style={{ fontSize: 11, color: '#9CA3AF' }}>{notes.patientId}</div>}
                           </td>
-                          <td className="px-4 py-3 text-gray-500 text-xs">{notes?.insuranceProvider || '—'}</td>
-                          <td className="px-4 py-3 text-gray-700">{c.user.firstName} {c.user.lastName}</td>
-                          <td className="px-4 py-3 text-right font-black text-gray-900">{(c.amount || 0).toLocaleString()} RWF</td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}`}>
+                          <td style={{ ...tdStyle, color: '#6B7280', fontSize: 12 }}>{notes?.insuranceProvider || '—'}</td>
+                          <td style={tdStyle}>{c.user.firstName} {c.user.lastName}</td>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#201E50' }}>{(c.amount || 0).toLocaleString()} RWF</td>
+                          <td style={{ ...tdStyle, textAlign: 'center' }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: s.bg, color: s.color, border: `1px solid ${s.border}`, padding: '2px 8px', borderRadius: 20 }}>
                               {c.status}
                             </span>
                           </td>
@@ -254,7 +272,7 @@ const SalesReport: React.FC = () => {
                       );
                     })}
                     {claims.length === 0 && (
-                      <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-300">No claims in this period</td></tr>
+                      <tr><td colSpan={6} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF', padding: '40px' }}>No claims in this period</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -262,10 +280,9 @@ const SalesReport: React.FC = () => {
             )}
 
             {activeTab === 'overview' && (
-              <div className="p-6 text-center text-gray-400">
-                <div className="text-4xl mb-2"></div>
-                <div className="text-sm">Select Sales or Claims tab to see detailed records</div>
-                <div className="text-xs mt-1">Use filters above to narrow by date range or pharmacist</div>
+              <div style={{ padding: '48px 20px', textAlign: 'center' }}>
+                <div style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 6 }}>Select Sales or Claims tab to see detailed records</div>
+                <div style={{ fontSize: 12, color: '#C4C9D4' }}>Use filters above to narrow by date range or pharmacist</div>
               </div>
             )}
           </div>
@@ -273,9 +290,8 @@ const SalesReport: React.FC = () => {
       )}
 
       {!summary && !loading && (
-        <div className="text-center py-20 text-gray-300">
-          <div className="text-5xl mb-3"></div>
-          <div className="text-sm">Click "Apply Filters" to generate the report</div>
+        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <div style={{ fontSize: 13, color: '#9CA3AF' }}>Click "Apply Filters" to generate the report</div>
         </div>
       )}
     </div>
