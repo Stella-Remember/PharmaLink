@@ -3,12 +3,29 @@ import React, { useState, useEffect, useRef } from 'react';
 import { inventoryAPI, Medicine } from '../../api/inventory';
 import AddInventory from './AddInventory';
 import AdjustStock from './AdjustStock';
+import * as XLSX from 'xlsx';
 
-
+// Template headers with detailed fields matching your requirements
 const TEMPLATE_HEADERS = [
-  'medicineName', 'category', 'manufacturer', 'strength',
-  'batchNumber', 'expiryDate', 'quantity', 'reorderLevel', 'unitPrice'
+  'Medicine Type', 'Trade / Brand Name', 'Generic Name', 'Category',
+  'Manufacturer', 'Strength', 'Batch Number', 'Expiry Date',
+  'Quantity', 'Reorder Level', 'Price (RWF)'
 ];
+
+// API field mapping for import
+const mapImportFields = (row: any) => ({
+  medicineName: row['Trade / Brand Name'] || row.medicineName || '',
+  medicineType: row['Medicine Type'] === '® Patented' ? 'PATENTED' : 'GENERIC',
+  genericName: row['Generic Name'] || '',
+  category: row.Category || '',
+  manufacturer: row.Manufacturer || '',
+  strength: row.Strength || '',
+  batchNumber: row['Batch Number'] || row.batchNumber || '',
+  expiryDate: row['Expiry Date'] || row.expiryDate || '',
+  quantity: parseInt(row.Quantity || row.quantity || 0),
+  reorderLevel: parseInt(row['Reorder Level'] || row.reorderLevel || 0),
+  unitPrice: parseFloat(row['Price (RWF)'] || row.unitPrice || row.sellingPrice || 0)
+});
 
 const InventoryList: React.FC = () => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -49,20 +66,51 @@ const InventoryList: React.FC = () => {
     }
   };
 
-  // ── EXPORT ──────────────────────────────────────────────────────────────────
-  const handleExport = () => {
+  // ── EXPORT TO EXCEL ─────────────────────────────────────────────────────────
+  const handleExportToExcel = () => {
+    const exportData = medicines.map(med => ({
+      'Medicine Type': med.medicineType === 'PATENTED' ? '® Patented' : 'Generic',
+      'Trade / Brand Name': med.medicineName || med.name || '',
+      'Generic Name': med.genericName || '',
+      'Category': med.category || '',
+      'Manufacturer': med.manufacturer || '',
+      'Strength': med.strength || '',
+      'Batch Number': med.batchNumber || '',
+      'Expiry Date': new Date(med.expiryDate).toLocaleDateString(),
+      'Quantity': med.quantity,
+      'Reorder Level': med.reorderLevel,
+      'Price (RWF)': med.unitPrice || med.sellingPrice || 0
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Inventory');
+    
+    // Auto-size columns
+    const colWidths = Object.keys(exportData[0] || {}).map(key => ({
+      wch: Math.max(key.length, 15)
+    }));
+    ws['!cols'] = colWidths;
+    
+    XLSX.writeFile(wb, `inventory_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  // ── EXPORT TO CSV ───────────────────────────────────────────────────────────
+  const handleExportToCSV = () => {
     const rows = [
       TEMPLATE_HEADERS,
       ...medicines.map(m => [
-        m.name || m.medicineName || '',
+        m.medicineType === 'PATENTED' ? '® Patented' : 'Generic',
+        m.medicineName || m.name || '',
+        m.genericName || '',
         m.category || '',
         m.manufacturer || '',
         m.strength || '',
         m.batchNumber || '',
-        m.expiryDate ? new Date(m.expiryDate).toISOString().split('T')[0] : '',
+        m.expiryDate ? new Date(m.expiryDate).toLocaleDateString() : '',
         m.quantity ?? '',
         m.reorderLevel ?? '',
-        m.sellingPrice ?? m.unitPrice ?? '',
+        m.unitPrice ?? m.sellingPrice ?? '',
       ]),
     ];
 
@@ -76,11 +124,56 @@ const InventoryList: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // ── DOWNLOAD TEMPLATE ────────────────────────────────────────────────────────
-  const handleDownloadTemplate = () => {
+  // ── DOWNLOAD EXCEL TEMPLATE ─────────────────────────────────────────────────
+  const handleDownloadExcelTemplate = () => {
+    const sampleData = [
+      {
+        'Medicine Type': '® Patented',
+        'Trade / Brand Name': 'Nexium',
+        'Generic Name': 'Esomeprazole',
+        'Category': 'Gastrointestinal',
+        'Manufacturer': 'AstraZeneca',
+        'Strength': '40mg',
+        'Batch Number': 'BT-2025-010',
+        'Expiry Date': '06/22/2026',
+        'Quantity': 160,
+        'Reorder Level': 50,
+        'Price (RWF)': 4500
+      },
+      {
+        'Medicine Type': 'Generic',
+        'Trade / Brand Name': 'Amoxicillin 500mg',
+        'Generic Name': 'Amoxicillin',
+        'Category': 'Antibiotics',
+        'Manufacturer': 'Cipla',
+        'Strength': '500mg',
+        'Batch Number': 'BT-2025-001',
+        'Expiry Date': '06/30/2027',
+        'Quantity': 200,
+        'Reorder Level': 50,
+        'Price (RWF)': 1500
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    
+    // Auto-size columns
+    const colWidths = Object.keys(sampleData[0]).map(key => ({
+      wch: Math.max(key.length, 20)
+    }));
+    ws['!cols'] = colWidths;
+    
+    XLSX.writeFile(wb, 'inventory_import_template.xlsx');
+  };
+
+  // ── DOWNLOAD CSV TEMPLATE ───────────────────────────────────────────────────
+  const handleDownloadCSVTemplate = () => {
     const sampleRow = [
-      'Amoxicillin 500mg', 'Antibiotics', 'Cipla', '500mg',
-      'BT-2025-001', '2027-06-30', '200', '50', '1500',
+      '® Patented', 'Nexium', 'Esomeprazole', 'Gastrointestinal',
+      'AstraZeneca', '40mg', 'BT-2025-010', '06/22/2026',
+      '160', '50', '4500'
     ];
     const csv = [TEMPLATE_HEADERS, sampleRow]
       .map(r => r.map(c => `"${c}"`).join(','))
@@ -94,8 +187,90 @@ const InventoryList: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // ── IMPORT ───────────────────────────────────────────────────────────────────
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── IMPORT FROM EXCEL ───────────────────────────────────────────────────────
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      setImportStatus({ type: 'error', message: 'Please upload an Excel file (.xlsx or .xls).' });
+      return;
+    }
+
+    setImporting(true);
+    setImportStatus({ type: null, message: '' });
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(firstSheet);
+
+      if (rows.length === 0) {
+        setImportStatus({ type: 'error', message: 'No data found in the Excel file.' });
+        setImporting(false);
+        return;
+      }
+
+      // Validate required fields
+      const requiredFields = ['Trade / Brand Name', 'Category', 'Batch Number', 'Expiry Date', 'Quantity', 'Price (RWF)'];
+      const firstRow = rows[0] as any;
+      const missingFields = requiredFields.filter(f => !firstRow.hasOwnProperty(f));
+      
+      if (missingFields.length > 0) {
+        setImportStatus({ 
+          type: 'error', 
+          message: `Missing columns: ${missingFields.join(', ')}. Please use the template.` 
+        });
+        setImporting(false);
+        return;
+      }
+
+      let successCount = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i] as any;
+        const rowNum = i + 2;
+
+        // Validate numeric fields
+        if (isNaN(Number(row.Quantity)) || Number(row.Quantity) < 0) {
+          errors.push(`Row ${rowNum}: Invalid Quantity "${row.Quantity}"`);
+          continue;
+        }
+        if (isNaN(Number(row['Price (RWF)'])) || Number(row['Price (RWF)']) <= 0) {
+          errors.push(`Row ${rowNum}: Invalid Price "${row['Price (RWF)']}"`);
+          continue;
+        }
+
+        try {
+          const mappedData = mapImportFields(row);
+          await inventoryAPI.create(mappedData);
+          successCount++;
+        } catch (err: any) {
+          const msg = err.response?.data?.message || err.response?.data?.error || 'Failed';
+          errors.push(`Row ${rowNum} (${row['Trade / Brand Name']}): ${msg}`);
+        }
+      }
+
+      if (successCount > 0) {
+        fetchMedicines();
+        setImportStatus({
+          type: errors.length > 0 ? 'error' : 'success',
+          message: `✅ ${successCount} medicine(s) imported successfully.${errors.length > 0 ? `\n⚠️ ${errors.length} row(s) failed:\n${errors.slice(0, 5).join('\n')}` : ''}`,
+        });
+      } else {
+        setImportStatus({ type: 'error', message: `Import failed:\n${errors.slice(0, 5).join('\n')}` });
+      }
+    } catch (error) {
+      setImportStatus({ type: 'error', message: 'Failed to read Excel file. Please check the file format.' });
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // ── IMPORT FROM CSV ─────────────────────────────────────────────────────────
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.name.endsWith('.csv')) {
@@ -116,7 +291,7 @@ const InventoryList: React.FC = () => {
 
     // Parse header row (strip quotes)
     const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-    const requiredHeaders = ['medicineName', 'category', 'batchNumber', 'expiryDate', 'quantity', 'reorderLevel', 'unitPrice'];
+    const requiredHeaders = ['Trade / Brand Name', 'Category', 'Batch Number', 'Expiry Date', 'Quantity', 'Price (RWF)'];
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
     if (missingHeaders.length > 0) {
       setImportStatus({ type: 'error', message: `Missing columns: ${missingHeaders.join(', ')}. Download the template first.` });
@@ -126,7 +301,6 @@ const InventoryList: React.FC = () => {
 
     // Parse data rows
     const rows = lines.slice(1).map(line => {
-      // Handle quoted CSV values
       const values: string[] = [];
       let current = '';
       let inQuotes = false;
@@ -139,7 +313,7 @@ const InventoryList: React.FC = () => {
       const obj: Record<string, string> = {};
       headers.forEach((h, i) => { obj[h] = values[i] || ''; });
       return obj;
-    }).filter(row => row.medicineName); // skip empty rows
+    }).filter(row => row['Trade / Brand Name']);
 
     if (rows.length === 0) {
       setImportStatus({ type: 'error', message: 'No valid data rows found.' });
@@ -147,7 +321,6 @@ const InventoryList: React.FC = () => {
       return;
     }
 
-    // Validate and send each row
     let successCount = 0;
     const errors: string[] = [];
 
@@ -155,37 +328,24 @@ const InventoryList: React.FC = () => {
       const row = rows[i];
       const rowNum = i + 2;
 
-      if (isNaN(Number(row.quantity)) || Number(row.quantity) < 0) {
-        errors.push(`Row ${rowNum}: Invalid quantity "${row.quantity}"`);
+      if (isNaN(Number(row.Quantity)) || Number(row.Quantity) < 0) {
+        errors.push(`Row ${rowNum}: Invalid Quantity "${row.Quantity}"`);
         continue;
       }
-      if (isNaN(Number(row.unitPrice)) || Number(row.unitPrice) <= 0) {
-        errors.push(`Row ${rowNum}: Invalid unitPrice "${row.unitPrice}"`);
+      if (isNaN(Number(row['Price (RWF)'])) || Number(row['Price (RWF)']) <= 0) {
+        errors.push(`Row ${rowNum}: Invalid Price "${row['Price (RWF)']}"`);
         continue;
       }
 
       try {
-        await inventoryAPI.create({
-          medicineName: row.medicineName,
-          genericName: row.medicineName,
-          category: row.category || 'Other',
-          manufacturer: row.manufacturer || 'Unknown',
-          strength: row.strength || 'N/A',
-          batchNumber: row.batchNumber,
-          expiryDate: row.expiryDate,
-          quantity: parseInt(row.quantity),
-          reorderLevel: parseInt(row.reorderLevel) || 10,
-          unitPrice: parseFloat(row.unitPrice),
-        });
+        const mappedData = mapImportFields(row);
+        await inventoryAPI.create(mappedData);
         successCount++;
       } catch (err: any) {
         const msg = err.response?.data?.message || err.response?.data?.error || 'Failed';
-        errors.push(`Row ${rowNum} (${row.medicineName}): ${msg}`);
+        errors.push(`Row ${rowNum} (${row['Trade / Brand Name']}): ${msg}`);
       }
     }
-
-    // Reset file input
-    if (fileInputRef.current) fileInputRef.current.value = '';
 
     if (successCount > 0) {
       fetchMedicines();
@@ -198,13 +358,15 @@ const InventoryList: React.FC = () => {
     }
 
     setImporting(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const filteredMedicines = medicines.filter(med => {
     const name = med.name || med.medicineName || '';
     const matchesSearch =
       name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (med.batchNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (med.batchNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (med.genericName || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || med.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -221,37 +383,86 @@ const InventoryList: React.FC = () => {
         </h2>
 
         <div className="flex flex-wrap gap-2">
-          {/* Import / Export group */}
-          <button
-            onClick={handleDownloadTemplate}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-1"
-            title="Download CSV template"
-          >
-            📋 Template
-          </button>
+          {/* Template dropdown */}
+          <div className="relative group">
+            <button
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-1"
+              title="Download template"
+            >
+              📋 Template
+            </button>
+            <div className="absolute right-0 mt-1 hidden group-hover:block bg-white border rounded-lg shadow-lg z-10 min-w-36">
+              <button
+                onClick={handleDownloadExcelTemplate}
+                className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-t-lg"
+              >
+                📊 Excel Template (.xlsx)
+              </button>
+              <button
+                onClick={handleDownloadCSVTemplate}
+                className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-b-lg"
+              >
+                📄 CSV Template (.csv)
+              </button>
+            </div>
+          </div>
 
-          <label
-            className={`px-3 py-2 text-sm border border-blue-300 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 flex items-center gap-1 cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}
-            title="Import from CSV"
-          >
-            {importing ? '⏳ Importing...' : '⬆️ Import CSV'}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleImport}
-              className="hidden"
-            />
-          </label>
+          {/* Import dropdown */}
+          <div className="relative group">
+            <label
+              className={`px-3 py-2 text-sm border border-blue-300 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 flex items-center gap-1 cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}
+              title="Import from file"
+            >
+              {importing ? '⏳ Importing...' : '⬆️ Import'}
+            </label>
+            <div className="absolute right-0 mt-1 hidden group-hover:block bg-white border rounded-lg shadow-lg z-10 min-w-36">
+              <label className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-t-lg cursor-pointer">
+                📊 Import Excel (.xlsx, .xls)
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleImportExcel}
+                  className="hidden"
+                />
+              </label>
+              <label className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-b-lg cursor-pointer">
+                📄 Import CSV (.csv)
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportCSV}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
 
-          <button
-            onClick={handleExport}
-            disabled={medicines.length === 0}
-            className="px-3 py-2 text-sm border border-green-300 text-green-700 bg-green-50 rounded-lg hover:bg-green-100 flex items-center gap-1 disabled:opacity-40"
-            title="Export to CSV"
-          >
-            ⬇️ Export CSV
-          </button>
+          {/* Export dropdown */}
+          <div className="relative group">
+            <button
+              disabled={medicines.length === 0}
+              className="px-3 py-2 text-sm border border-green-300 text-green-700 bg-green-50 rounded-lg hover:bg-green-100 flex items-center gap-1 disabled:opacity-40"
+              title="Export data"
+            >
+              ⬇️ Export
+            </button>
+            <div className="absolute right-0 mt-1 hidden group-hover:block bg-white border rounded-lg shadow-lg z-10 min-w-36">
+              <button
+                onClick={handleExportToExcel}
+                disabled={medicines.length === 0}
+                className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-t-lg disabled:opacity-40"
+              >
+                📊 Export to Excel (.xlsx)
+              </button>
+              <button
+                onClick={handleExportToCSV}
+                disabled={medicines.length === 0}
+                className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-b-lg disabled:opacity-40"
+              >
+                📄 Export to CSV (.csv)
+              </button>
+            </div>
+          </div>
 
           <button
             onClick={() => setShowAddModal(true)}
@@ -289,7 +500,7 @@ const InventoryList: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <input
             type="text"
-            placeholder="Search by name or batch number..."
+            placeholder="Search by name, generic name, or batch number..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
@@ -315,6 +526,7 @@ const InventoryList: React.FC = () => {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Medicine</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Category</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Batch</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Expiry</th>
@@ -337,7 +549,21 @@ const InventoryList: React.FC = () => {
                     <tr key={medicine.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900">{displayName}</div>
-                        {medicine.strength && <div className="text-xs text-gray-400">{medicine.strength}</div>}
+                        {medicine.genericName && (
+                          <div className="text-xs text-gray-400">{medicine.genericName}</div>
+                        )}
+                        {medicine.strength && (
+                          <div className="text-xs text-gray-400">{medicine.strength}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          medicine.medicineType === 'PATENTED' 
+                            ? 'bg-amber-100 text-amber-700' 
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {medicine.medicineType === 'PATENTED' ? '® Patented' : 'Generic'}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-gray-600">{medicine.category}</td>
                       <td className="px-4 py-3 text-gray-600 font-mono text-xs">{medicine.batchNumber}</td>
@@ -384,7 +610,7 @@ const InventoryList: React.FC = () => {
               <div className="p-12 text-center text-gray-400">
                 {searchTerm || categoryFilter !== 'all'
                   ? 'No medicines match your search.'
-                  : 'No medicines yet. Add one or import from CSV.'}
+                  : 'No medicines yet. Add one or import from Excel/CSV.'}
               </div>
             )}
           </div>
