@@ -12,144 +12,77 @@ import api from '../../api/client';
 export type TabType = 'dashboard' | 'stores' | 'users' | 'reports' | 'inventory-report' | 'claims' | 'settings';
 
 interface DashboardStats {
-  totalStores: number;
-  todaySales: number;
-  totalMedicines: number;
-  lowStockCount: number;
-  totalEmployees: number;
-  pendingClaims: number;
+  totalStores: number; todaySales: number; totalMedicines: number;
+  lowStockCount: number; totalEmployees: number; pendingClaims: number;
 }
 
 interface Store {
-  id: string;
-  name: string;
-  location: string;
-  totalMedicines: number;
-  lowStock: number;
-  todaySales: number;
-  employees: number;
-  pendingClaims: number;
-  status: 'active' | 'inactive';
+  id: string; name: string; location: string; totalMedicines: number;
+  lowStock: number; todaySales: number; employees: number;
+  pendingClaims: number; status: 'active' | 'inactive';
 }
 
 interface InventoryReportItem {
-  id: string;
-  medicineName: string;
-  genericName: string;
-  medicineType: string;
-  category: string;
-  batchNumber: string;
-  expiryDate: string;
-  quantity: number;
-  reorderLevel: number;
-  sellingPrice: number;
-  pharmacyName: string;
+  id: string; medicineName: string; genericName: string; medicineType: string;
+  category: string; batchNumber: string; expiryDate: string; quantity: number;
+  reorderLevel: number; sellingPrice: number; pharmacyName: string;
   status: 'OK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'EXPIRED';
 }
 
-
 const apiFetch = (path: string) => api.get(path).then(r => r.data);
 
-// ── SVG Icons ─────────────────────────────────────────────────────────────────
 const Icons = {
-  revenue: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-    </svg>
-  ),
-  stores: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-    </svg>
-  ),
-  medicines: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10.5 20H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v3"/>
-      <circle cx="18" cy="18" r="3"/><path d="m22 22-1.5-1.5"/>
-    </svg>
-  ),
-  users: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
-  ),
-  alert: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-    </svg>
-  ),
-  claims: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-    </svg>
-  ),
-  refresh: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-    </svg>
-  ),
-  download: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-    </svg>
-  ),
+  revenue: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+  stores:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  medicines: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 20H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v3"/><circle cx="18" cy="18" r="3"/><path d="m22 22-1.5-1.5"/></svg>,
+  users:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  alert:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  claims:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  refresh: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>,
+  download: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
 };
 
-// ── Stat Card ─────────────────────────────────────────────────────────────────
-const accentColors: Record<string, { main: string }> = {
-  green:  { main: '#32A287' },
-  blue:   { main: '#4F7CAC' },
-  purple: { main: '#7C3AED' },
-  indigo: { main: '#4F46E5' },
-  amber:  { main: '#D97706' },
-  red:    { main: '#DC2626' },
+// Stat card — light style matching palette
+const cardAccents: Record<string, { border: string; value: string }> = {
+  green:  { border: '#32A287', value: '#32A287' },
+  blue:   { border: '#4F7CAC', value: '#4F7CAC' },
+  purple: { border: '#7C3AED', value: '#7C3AED' },
+  indigo: { border: '#4F46E5', value: '#4F46E5' },
+  amber:  { border: '#D97706', value: '#D97706' },
+  red:    { border: '#DC2626', value: '#DC2626' },
 };
 
 const StatCard: React.FC<{
   label: string; value: string | number; sub?: string;
   icon: React.ReactNode; accent: string; loading?: boolean;
 }> = ({ label, value, sub, icon, accent, loading }) => {
-  const accents: Record<string, { icon: string; bg: string }> = {
-    green:  { icon: 'text-teal-600',   bg: 'bg-teal-50' },
-    blue:   { icon: 'text-blue-600',   bg: 'bg-blue-50' },
-    purple: { icon: 'text-purple-600', bg: 'bg-purple-50' },
-    indigo: { icon: 'text-indigo-600', bg: 'bg-indigo-50' },
-    amber:  { icon: 'text-amber-600',  bg: 'bg-amber-50' },
-    red:    { icon: 'text-red-500',    bg: 'bg-red-50' },
-  };
-  const a = accents[accent] || accents.blue;
-
- return (
-  <div
-    className="rounded-xl p-4 text-white transition-all"
-    style={{
-      background: `linear-gradient(135deg, ${accentColors[accent].main}, ${accentColors[accent].main}CC)`,
-      boxShadow: '0 10px 20px rgba(0,0,0,0.05)'
-    }}
-  >
-    <div className="flex items-start justify-between mb-3">
-      <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-white/20">
+  const a = cardAccents[accent] || cardAccents.blue;
+  return (
+    <div style={{
+      backgroundColor: '#ffffff',
+      border: '1px solid #F1F5F9',
+      borderTop: `3px solid ${a.border}`,
+      borderRadius: 12,
+      padding: '18px',
+    }}>
+      <div style={{
+        width: 34, height: 34, borderRadius: 8,
+        backgroundColor: `${a.border}15`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: a.border, marginBottom: 12,
+      }}>
         {icon}
       </div>
+      {loading ? (
+        <div style={{ height: 28, width: 80, backgroundColor: '#F1F5F9', borderRadius: 6, marginBottom: 8 }} />
+      ) : (
+        <div style={{ fontSize: 24, fontWeight: 700, color: a.value, lineHeight: 1 }}>{value}</div>
+      )}
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 8 }}>{label}</div>
+      {sub && <div style={{ fontSize: 11, color: '#C4C9D4', marginTop: 2 }}>{sub}</div>}
     </div>
-
-    {loading ? (
-      <div className="h-7 w-20 rounded-md animate-pulse bg-white/30" />
-    ) : (
-      <div className="text-2xl font-semibold">{value}</div>
-    )}
-
-    <div className="text-xs font-medium mt-1 uppercase tracking-wide text-white/90">
-      {label}
-    </div>
-
-    {sub && <div className="text-xs text-white/70 mt-0.5">{sub}</div>}
-  </div>
-)};
+  );
+};
 
 // ── Inventory Report Tab ──────────────────────────────────────────────────────
 const InventoryReportTab: React.FC = () => {
@@ -206,11 +139,12 @@ const InventoryReportTab: React.FC = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-800">Stock Report</h2>
+          <h2 className="text-xl font-semibold text-gray-800">Stock Report</h2>
           <p className="text-sm text-gray-400 mt-0.5">Full inventory across all your stores</p>
         </div>
         <button onClick={downloadCSV}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg font-medium text-sm hover:bg-teal-700 transition">
+          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm text-white transition"
+          style={{ backgroundColor: '#32A287' }}>
           {Icons.download} Download CSV
         </button>
       </div>
@@ -233,10 +167,8 @@ const InventoryReportTab: React.FC = () => {
         <div className="flex rounded-lg overflow-hidden border border-gray-200">
           {(['all', 'LOW_STOCK', 'OUT_OF_STOCK', 'EXPIRED'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-2 text-xs font-medium transition ${filter === f
-                ? 'bg-[#1a2235] text-white'
-                : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-              }`}>
+              className={`px-3 py-2 text-xs font-medium transition ${filter === f ? 'text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
+              style={filter === f ? { backgroundColor: '#201E50' } : {}}>
               {f === 'all' ? `All (${counts.all})` : f === 'LOW_STOCK' ? `Low (${counts.LOW_STOCK})` : f === 'OUT_OF_STOCK' ? `Empty (${counts.OUT_OF_STOCK})` : `Expired (${counts.EXPIRED})`}
             </button>
           ))}
@@ -246,7 +178,7 @@ const InventoryReportTab: React.FC = () => {
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
-            <div className="w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-3" style={{ borderColor: '#32A287', borderTopColor: 'transparent' }} />
             <div className="text-sm text-gray-400">Loading inventory...</div>
           </div>
         ) : (
@@ -267,9 +199,9 @@ const InventoryReportTab: React.FC = () => {
                       {item.genericName && <div className="text-xs text-gray-400">{item.genericName}</div>}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        item.medicineType === 'PATENTED' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'
-                      }`}>{item.medicineType === 'PATENTED' ? 'Patented' : 'Generic'}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${item.medicineType === 'PATENTED' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {item.medicineType === 'PATENTED' ? 'Patented' : 'Generic'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">{item.pharmacyName}</td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">{item.batchNumber}</td>
@@ -316,10 +248,8 @@ const OwnerDashboard: React.FC = () => {
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
-    try {
-      const data = await apiFetch('/pharmacies/dashboard-stats');
-      setStats(data);
-    } catch (e) { console.error(e); }
+    try { const data = await apiFetch('/pharmacies/dashboard-stats'); setStats(data); }
+    catch (e) { console.error(e); }
     finally { setStatsLoading(false); }
   }, []);
 
@@ -327,86 +257,64 @@ const OwnerDashboard: React.FC = () => {
     setStoresLoading(true);
     try {
       const data = await apiFetch('/pharmacies');
-      const mapped: Store[] = (Array.isArray(data) ? data : []).map((p: any) => ({
-        ...p,
-        location: p.location || p.address || '',
+      setStores((Array.isArray(data) ? data : []).map((p: any) => ({
+        ...p, location: p.location || p.address || '',
         status: (p.status === 'active' ? 'active' : 'inactive') as 'active' | 'inactive',
-      }));
-      setStores(mapped);
+      })));
     } catch (e) { console.error(e); }
     finally { setStoresLoading(false); }
   }, []);
 
   useEffect(() => {
-    fetchStats();
-    fetchStores();
-    const interval = setInterval(() => {
-      fetchStats(); fetchStores(); setLastRefresh(new Date());
-    }, 60000);
+    fetchStats(); fetchStores();
+    const interval = setInterval(() => { fetchStats(); fetchStores(); setLastRefresh(new Date()); }, 60000);
     return () => clearInterval(interval);
   }, [fetchStats, fetchStores]);
 
   const handleRefresh = () => { fetchStats(); fetchStores(); setLastRefresh(new Date()); };
-
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
 
   const renderDashboard = () => (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-start flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-800">{greeting}, {user?.firstName}!</h2>
+          <h2 className="text-xl font-semibold text-gray-800">{greeting}, {user?.firstName}!</h2>
           <p className="text-sm text-gray-400 mt-0.5">Here's what's happening across your pharmacies today.</p>
         </div>
         <button onClick={handleRefresh}
           className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
-          {Icons.refresh}
-          Refresh · {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {Icons.refresh} Refresh · {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <StatCard label="Today's Revenue" loading={statsLoading}
-          value={stats ? `${(stats.todaySales || 0).toLocaleString()} RWF` : '—'}
-          icon={Icons.revenue} accent="green" sub="Sales today" />
-        <StatCard label="Total Stores" loading={statsLoading}
-          value={stats?.totalStores ?? '—'} icon={Icons.stores} accent="blue" />
-        <StatCard label="Medicines" loading={statsLoading}
-          value={stats?.totalMedicines ?? '—'} icon={Icons.medicines} accent="purple" sub="Across all stores" />
-        <StatCard label="Employees" loading={statsLoading}
-          value={stats?.totalEmployees ?? '—'} icon={Icons.users} accent="indigo" />
-        <StatCard label="Low Stock" loading={statsLoading}
-          value={stats?.lowStockCount ?? '—'} icon={Icons.alert} accent="amber"
-          sub={stats?.lowStockCount ? 'Needs restock' : 'All good'} />
-        <StatCard label="Pending Claims" loading={statsLoading}
-          value={stats?.pendingClaims ?? '—'} icon={Icons.claims} accent="red" sub="Insurance" />
+        <StatCard label="Today's Revenue" loading={statsLoading} value={stats ? `${(stats.todaySales || 0).toLocaleString()} RWF` : '—'} icon={Icons.revenue} accent="green" sub="Sales today" />
+        <StatCard label="Total Stores" loading={statsLoading} value={stats?.totalStores ?? '—'} icon={Icons.stores} accent="blue" />
+        <StatCard label="Medicines" loading={statsLoading} value={stats?.totalMedicines ?? '—'} icon={Icons.medicines} accent="purple" sub="Across all stores" />
+        <StatCard label="Employees" loading={statsLoading} value={stats?.totalEmployees ?? '—'} icon={Icons.users} accent="indigo" />
+        <StatCard label="Low Stock" loading={statsLoading} value={stats?.lowStockCount ?? '—'} icon={Icons.alert} accent="amber" sub={stats?.lowStockCount ? 'Needs restock' : 'All good'} />
+        <StatCard label="Pending Claims" loading={statsLoading} value={stats?.pendingClaims ?? '—'} icon={Icons.claims} accent="red" sub="Insurance" />
       </div>
 
-      {/* Quick actions */}
       <div className="flex gap-3 flex-wrap">
         {[
-          { label: 'View Reports',   tab: 'reports' as TabType,           primary: true },
-          { label: 'Stock Report',   tab: 'inventory-report' as TabType,  primary: false },
-          { label: 'Manage Stores',  tab: 'stores' as TabType,            primary: false },
-          { label: 'Manage Users',   tab: 'users' as TabType,             primary: false },
+          { label: 'View Reports', tab: 'reports' as TabType, primary: true },
+          { label: 'Stock Report', tab: 'inventory-report' as TabType, primary: false },
+          { label: 'Manage Stores', tab: 'stores' as TabType, primary: false },
+          { label: 'Manage Users', tab: 'users' as TabType, primary: false },
         ].map(a => (
           <button key={a.tab} onClick={() => setActiveTab(a.tab)}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
-              a.primary
-                ? 'bg-[#1a2235] text-white hover:bg-[#2a3245]'
-                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-            }`}>
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition ${a.primary ? 'text-white' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
+            style={a.primary ? { backgroundColor: '#201E50' } : {}}>
             {a.label}
           </button>
         ))}
       </div>
 
-      {/* Stores grid */}
       <div>
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-base font-semibold text-gray-800">Your Stores</h3>
-          <button onClick={() => setActiveTab('stores')} className="text-sm text-teal-600 hover:underline font-medium">View all</button>
+          <h3 className="text-sm font-semibold text-gray-800">Your Stores</h3>
+          <button onClick={() => setActiveTab('stores')} className="text-sm font-medium" style={{ color: '#32A287' }}>View all</button>
         </div>
 
         {storesLoading ? (
@@ -422,8 +330,8 @@ const OwnerDashboard: React.FC = () => {
           </div>
         ) : stores.length === 0 ? (
           <div className="rounded-xl p-12 text-center border border-gray-100 bg-white">
-            <div className="text-gray-400 font-medium mb-2">No stores yet</div>
-            <button onClick={() => setActiveTab('stores')} className="text-teal-600 text-sm hover:underline">Add your first store</button>
+            <div className="text-gray-400 text-sm mb-2">No stores yet</div>
+            <button onClick={() => setActiveTab('stores')} className="text-sm font-medium" style={{ color: '#32A287' }}>Add your first store</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -432,24 +340,24 @@ const OwnerDashboard: React.FC = () => {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="font-semibold text-gray-800">{store.name}</h4>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        store.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>{store.status}</span>
+                      <h4 className="font-semibold text-gray-800 text-sm">{store.name}</h4>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${store.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {store.status}
+                      </span>
                     </div>
                     {store.location && <p className="text-xs text-gray-400 mt-0.5">{store.location}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: 'Medicines',     value: store.totalMedicines,                             color: 'text-blue-600' },
-                    { label: 'Employees',     value: store.employees,                                  color: 'text-indigo-600' },
-                    { label: 'Low Stock',     value: store.lowStock,                                   color: store.lowStock > 0 ? 'text-amber-600' : 'text-teal-600' },
-                    { label: "Today's Sales", value: `${(store.todaySales || 0).toLocaleString()} RWF`, color: 'text-teal-600' },
+                    { label: 'Medicines', value: store.totalMedicines, color: '#4F7CAC' },
+                    { label: 'Employees', value: store.employees, color: '#4F46E5' },
+                    { label: 'Low Stock', value: store.lowStock, color: store.lowStock > 0 ? '#D97706' : '#32A287' },
+                    { label: "Today's Sales", value: `${(store.todaySales || 0).toLocaleString()} RWF`, color: '#32A287' },
                   ].map(stat => (
                     <div key={stat.label} className="p-3 rounded-lg bg-gray-50">
                       <div className="text-xs text-gray-400">{stat.label}</div>
-                      <div className={`font-semibold text-sm mt-0.5 ${stat.color}`}>{stat.value}</div>
+                      <div className="font-semibold text-sm mt-0.5" style={{ color: stat.color }}>{stat.value}</div>
                     </div>
                   ))}
                 </div>
