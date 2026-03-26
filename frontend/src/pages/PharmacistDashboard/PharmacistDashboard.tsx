@@ -1,144 +1,152 @@
+// src/pages/PharmacistDashboard/PharmacistDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import StatsCard from '../../components/Dashboard/StatsCard';
-import LowStockTable from '../../components/Dashboard/LowStockTable';
-import RecentSales from '../../components/Dashboard/RecentSales';
-import api from '../../api/client';
+import { inventoryAPI } from '../../api/inventory';
+import { salesAPI } from '../../api/sales';
+import { claimsAPI } from '../../api/claims';
+
+interface SaleRow { id: string; invoiceNumber: string; total: number; createdAt: string; items: any[]; }
+interface LowStockItem { id: string; medicineName?: string; name?: string; quantity: number; reorderLevel: number; }
 
 const PharmacistDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [stats, setStats] = useState({
-    totalMedicines: 0,
-    lowStockCount: 0,
-    todaySales: 0,
-    pendingClaims: 0,
-  });
-  const [lowStockItems, setLowStockItems] = useState([]);
-  const [recentSales, setRecentSales] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalMedicines: 0, lowStockCount: 0, todaySales: 0, pendingClaims: 0 });
+  const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
+  const [recentSales, setRecentSales] = useState<SaleRow[]>([]);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      // Replace with actual API calls
-      const [medicinesRes, salesRes, claimsRes] = await Promise.all([
-        api.get('/medicines/stats'),
-        api.get('/sales/today'),
-        api.get('/claims/pending'),
+      const [invRes, salesRes, claimsRes] = await Promise.allSettled([
+        inventoryAPI.getAll(), salesAPI.getAll(), claimsAPI.getAll(),
       ]);
-      
-      setStats({
-        totalMedicines: medicinesRes.data.total,
-        lowStockCount: medicinesRes.data.lowStock,
-        todaySales: salesRes.data.total,
-        pendingClaims: claimsRes.data.count,
-      });
-      
-      setLowStockItems(medicinesRes.data.lowStockItems || []);
-      setRecentSales(salesRes.data.recent || []);
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
+      if (invRes.status === 'fulfilled') {
+        const meds = Array.isArray(invRes.value.data) ? invRes.value.data : [];
+        const low = meds.filter((m: any) => m.quantity <= m.reorderLevel);
+        setStats(s => ({ ...s, totalMedicines: meds.length, lowStockCount: low.length }));
+        setLowStockItems(low.slice(0, 6));
+      }
+      if (salesRes.status === 'fulfilled') {
+        const sales = Array.isArray(salesRes.value.data) ? salesRes.value.data : [];
+        const today = new Date().toDateString();
+        const todayTotal = sales.filter((s: any) => new Date(s.createdAt).toDateString() === today).reduce((sum: number, s: any) => sum + (s.total || 0), 0);
+        setStats(s => ({ ...s, todaySales: todayTotal }));
+        setRecentSales(sales.slice(0, 6));
+      }
+      if (claimsRes.status === 'fulfilled') {
+        const claims = Array.isArray(claimsRes.value.data) ? claimsRes.value.data : [];
+        setStats(s => ({ ...s, pendingClaims: claims.filter((c: any) => c.status === 'PENDING').length }));
+      }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
-  // Clean SVG icons - no emojis
-  const icons = {
-    medicines: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 7h-4.18A3 3 0 0 0 16 5.18V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v1.18A3 3 0 0 0 8.18 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
-        <line x1="12" y1="11" x2="12" y2="17"/>
-        <line x1="9" y1="14" x2="15" y2="14"/>
-      </svg>
-    ),
-    alert: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-      </svg>
-    ),
-    sales: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>
-    ),
-    claims: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/>
-        <line x1="16" y1="13" x2="8" y2="13"/>
-        <line x1="16" y1="17" x2="8" y2="17"/>
-        <polyline points="10 9 9 9 8 9"/>
-      </svg>
-    ),
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        <main className="ml-64 p-6 flex items-center justify-center">
-          <div className="text-gray-500">Loading dashboard...</div>
-        </main>
-      </div>
-    );
-  }
+  const cards = [
+    { label: 'Total Medicines', value: stats.totalMedicines.toLocaleString(), sub: 'items in stock', top: '#4F7CAC', val: '#4F7CAC' },
+    { label: 'Low Stock', value: stats.lowStockCount.toString(), sub: stats.lowStockCount > 0 ? 'need restocking' : 'all stocked', top: stats.lowStockCount > 0 ? '#D97706' : '#32A287', val: stats.lowStockCount > 0 ? '#D97706' : '#32A287' },
+    { label: "Today's Revenue", value: `${stats.todaySales.toLocaleString()} RWF`, sub: 'collected today', top: '#32A287', val: '#32A287' },
+    { label: 'Pending Claims', value: stats.pendingClaims.toString(), sub: 'awaiting review', top: '#201E50', val: '#201E50' },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC' }}>
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="ml-64 p-6">
-
-        {/* Header - Clean, no "Live" badge */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">Overview of pharmacy operations</p>
+      <main style={{ marginLeft: 240, padding: '28px 32px' }}>
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 600, color: '#201E50', margin: 0 }}>Dashboard</h1>
+          <p style={{ fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>Overview of your pharmacy operations</p>
         </div>
 
-        {/* Stats Grid - Clean cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-          <StatsCard
-            title="Total Medicines"
-            value={stats.totalMedicines.toLocaleString()}
-            icon={icons.medicines}
-            trend={stats.totalMedicines > 0 ? "+12 this month" : undefined}
-          />
-          <StatsCard
-            title="Low Stock Alerts"
-            value={stats.lowStockCount}
-            subtitle={stats.lowStockCount > 0 ? "Requires attention" : "All stocked"}
-            icon={icons.alert}
-            variant={stats.lowStockCount > 0 ? "warning" : "default"}
-          />
-          <StatsCard
-            title="Today's Sales"
-            value={`${stats.todaySales.toLocaleString()} RWF`}
-            icon={icons.sales}
-          />
-          <StatsCard
-            title="Pending Claims"
-            value={stats.pendingClaims}
-            icon={icons.claims}
-            variant={stats.pendingClaims > 0 ? "warning" : "default"}
-          />
+        {/* Stat Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+          {cards.map(card => (
+            <div key={card.label} style={{ backgroundColor: '#fff', border: '1px solid #F1F5F9', borderTop: `3px solid ${card.top}`, borderRadius: 12, padding: '20px 20px 16px' }}>
+              {loading
+                ? <div style={{ height: 32, width: 80, backgroundColor: '#F1F5F9', borderRadius: 6, marginBottom: 8 }} />
+                : <div style={{ fontSize: 26, fontWeight: 700, color: card.val, lineHeight: 1 }}>{card.value}</div>
+              }
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{card.label}</div>
+              <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{card.sub}</div>
+            </div>
+          ))}
         </div>
 
         {/* Tables */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <LowStockTable items={lowStockItems} onReorder={(id) => console.log('Reorder', id)} />
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+          {/* Low Stock */}
+          <div style={{ backgroundColor: '#fff', border: '1px solid #F1F5F9', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#201E50' }}>Low Stock Alerts</div>
+                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>Medicines below reorder level</div>
+              </div>
+              {stats.lowStockCount > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: '#D97706', backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', padding: '2px 10px', borderRadius: 20 }}>{stats.lowStockCount} items</span>}
+            </div>
+            {loading ? (
+              <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[1,2,3].map(i => <div key={i} style={{ height: 36, backgroundColor: '#F8FAFC', borderRadius: 6 }} />)}
+              </div>
+            ) : lowStockItems.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', fontSize: 13, color: '#9CA3AF' }}>All medicines are adequately stocked.</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #F8FAFC' }}>
+                    {['Medicine', 'Current', 'Reorder Level', 'Status'].map(h => (
+                      <th key={h} style={{ padding: '9px 20px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {lowStockItems.map((item, i) => (
+                    <tr key={item.id} style={{ borderBottom: i < lowStockItems.length - 1 ? '1px solid #F8FAFC' : 'none' }}>
+                      <td style={{ padding: '11px 20px', fontWeight: 500, color: '#374151' }}>{item.medicineName || item.name || 'Unknown'}</td>
+                      <td style={{ padding: '11px 20px', color: '#EF4444', fontWeight: 600 }}>{item.quantity}</td>
+                      <td style={{ padding: '11px 20px', color: '#6B7280' }}>{item.reorderLevel}</td>
+                      <td style={{ padding: '11px 20px' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: '#D97706', backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', padding: '2px 8px', borderRadius: 20 }}>Low Stock</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-          <div className="lg:col-span-1">
-            <RecentSales sales={recentSales} />
+
+          {/* Recent Sales */}
+          <div style={{ backgroundColor: '#fff', border: '1px solid #F1F5F9', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #F8FAFC' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#201E50' }}>Recent Sales</div>
+              <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>Latest transactions</div>
+            </div>
+            <div style={{ flex: 1 }}>
+              {loading ? (
+                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[1,2,3].map(i => <div key={i} style={{ height: 44, backgroundColor: '#F8FAFC', borderRadius: 6 }} />)}
+                </div>
+              ) : recentSales.length === 0 ? (
+                <div style={{ padding: '40px 20px', textAlign: 'center', fontSize: 13, color: '#9CA3AF' }}>No transactions today</div>
+              ) : recentSales.map((sale, i) => (
+                <div key={sale.id} style={{ padding: '11px 20px', borderBottom: i < recentSales.length - 1 ? '1px solid #F8FAFC' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', fontFamily: 'monospace' }}>{sale.invoiceNumber}</div>
+                    <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1 }}>{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#32A287' }}>{(sale.total || 0).toLocaleString()}</div>
+                    <div style={{ fontSize: 10, color: '#9CA3AF' }}>RWF</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '8px 20px', borderTop: '1px solid #F8FAFC', display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#D1D5DB' }}>
+              <span>v1.0.0</span><span>© 2026 PharmaLink</span>
+            </div>
           </div>
         </div>
-
       </main>
     </div>
   );

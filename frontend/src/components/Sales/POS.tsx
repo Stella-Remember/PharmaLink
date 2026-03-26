@@ -649,8 +649,12 @@ const PaymentModal: React.FC<{
                 </div>
               ) : (
                 <div style={{textAlign:'center',padding:'40px 24px',background:'#F9FAFB',borderRadius:16,border:'2px dashed #E5E7EB'}}>
-                  <div style={{fontSize:40,marginBottom:10}}>🏥</div>
-                  <div style={{fontSize:16,fontWeight:700,color:'#1a2235',marginBottom:6}}>Insurance Payment</div>
+                  <div style={{width:44,height:44,borderRadius:12,backgroundColor:'#EFF7FF',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px'}}>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#32A287" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+  </svg>
+</div>
+<div style={{fontSize:15,fontWeight:600,color:'#201E50',marginBottom:6}}>Insurance Payment</div>
                   <div style={{fontSize:13,color:'#9CA3AF',marginBottom:20}}>Select provider, plan, and verify patient identity</div>
                   <button onClick={() => setInsOpen(true)}
                     style={{padding:'12px 28px',background:'#2A9D8F',color:'#fff',border:'none',borderRadius:12,fontWeight:700,fontSize:14,cursor:'pointer'}}>

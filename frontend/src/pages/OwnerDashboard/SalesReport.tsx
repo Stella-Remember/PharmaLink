@@ -263,7 +263,7 @@ const SalesReport: React.FC = () => {
 
             {activeTab === 'overview' && (
               <div className="p-6 text-center text-gray-400">
-                <div className="text-4xl mb-2">📊</div>
+                <div className="text-4xl mb-2"></div>
                 <div className="text-sm">Select Sales or Claims tab to see detailed records</div>
                 <div className="text-xs mt-1">Use filters above to narrow by date range or pharmacist</div>
               </div>
@@ -274,7 +274,7 @@ const SalesReport: React.FC = () => {
 
       {!summary && !loading && (
         <div className="text-center py-20 text-gray-300">
-          <div className="text-5xl mb-3">📈</div>
+          <div className="text-5xl mb-3"></div>
           <div className="text-sm">Click "Apply Filters" to generate the report</div>
         </div>
       )}
