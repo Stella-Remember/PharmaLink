@@ -54,7 +54,8 @@ interface StatCardProps {
   label: string;
   value: string | number;
   sub?: string;
-  icon: React.ReactNode;
+  gradientStart: string;
+  gradientEnd: string;
   loading: boolean;
 }
 
@@ -71,54 +72,47 @@ const Icons = {
   download: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
 };
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, sub, icon, loading }) => {
+const StatCard: React.FC<StatCardProps> = ({ label, value, sub, gradientStart, gradientEnd, loading }) => {
   return (
-    <div style={{
-      backgroundColor: '#ffffff',
-      border: '1px solid #EEF2F7',
-      borderRadius: 12,
-      padding: 16,
-      minHeight: 95,
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <div style={{
-          fontSize: 11,
-          color: '#9CA3AF',
-          fontWeight: 600
-        }}>
-          {label}
-        </div>
-
-        <div style={{ color: '#201E50' }}>
-          {icon}
-        </div>
-      </div>
-
+    <div
+      style={{
+        background: `linear-gradient(135deg, ${gradientStart}, ${gradientEnd})`,
+        borderRadius: 14,
+        padding: '22px',
+        color: '#fff',
+        boxShadow: '0 10px 20px rgba(0,0,0,0.05)',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+        cursor: 'pointer',
+        minHeight: 'auto',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-3px)';
+        e.currentTarget.style.boxShadow = '0 14px 24px rgba(0,0,0,0.08)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.05)';
+      }}
+    >
       {loading ? (
-        <div style={{
-          height: 20,
-          width: 60,
-          backgroundColor: '#F1F5F9',
-          borderRadius: 6
-        }} />
+        <div style={{ height: 32, width: 80, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 6, marginBottom: 8 }} />
       ) : (
-        <div style={{
-          fontSize: 22,
-          fontWeight: 700,
-          color: '#111827'
-        }}>
+        <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
           {value}
         </div>
       )}
-
+      <div style={{ 
+        fontSize: 11, 
+        fontWeight: 600, 
+        color: 'rgba(255,255,255,0.9)', 
+        marginTop: 8, 
+        textTransform: 'uppercase', 
+        letterSpacing: '0.06em' 
+      }}>
+        {label}
+      </div>
       {sub && (
-        <div style={{
-          fontSize: 11,
-          color: '#C4C9D4'
-        }}>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
           {sub}
         </div>
       )}
@@ -316,6 +310,73 @@ const OwnerDashboard: React.FC = () => {
   const handleRefresh = () => { fetchStats(); fetchStores(); setLastRefresh(new Date()); };
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
 
+  // Define stat cards with gradient colors matching the style
+  const statCards = [
+    { 
+      label: 'Revenue Today', 
+      value: stats ? `${(stats.todaySales || 0).toLocaleString()} RWF` : '—',
+      sub: 'Sales today',
+      gradientStart: '#32A287',
+      gradientEnd: '#268066'
+    },
+    { 
+      label: 'Total Stores', 
+      value: stats?.totalStores ?? '—',
+      sub: 'Active pharmacies',
+      gradientStart: '#4F7CAC',
+      gradientEnd: '#3A5C84'
+    },
+    { 
+      label: 'Total Medicines', 
+      value: stats?.totalMedicines ?? '—',
+      sub: 'Across all stores',
+      gradientStart: '#6B7280',
+      gradientEnd: '#4B5563'
+    },
+    { 
+      label: 'Total Employees', 
+      value: stats?.totalEmployees ?? '—',
+      sub: 'Staff members',
+      gradientStart: '#8B5CF6',
+      gradientEnd: '#6D28D9'
+    },
+    { 
+      label: 'Low Stock Items', 
+      value: stats?.lowStockCount ?? '—',
+      sub: stats?.lowStockCount ? 'Needs restock' : 'All good',
+      gradientStart: stats?.lowStockCount ? '#D97706' : '#32A287',
+      gradientEnd: stats?.lowStockCount ? '#B45309' : '#268066'
+    },
+    { 
+      label: 'Pending Claims', 
+      value: stats?.pendingClaims ?? '—',
+      sub: 'Insurance claims',
+      gradientStart: '#DC2626',
+      gradientEnd: '#B91C1C'
+    },
+    { 
+      label: 'Expired Medicines', 
+      value: stats?.expiredCount ?? '—',
+      sub: 'Needs disposal',
+      gradientStart: '#EF4444',
+      gradientEnd: '#DC2626'
+    },
+    { 
+      label: 'Out of Stock', 
+      value: stats?.outOfStock ?? '—',
+      sub: 'Immediate action',
+      gradientStart: '#F97316',
+      gradientEnd: '#EA580C'
+    },
+    { 
+      label: 'Revenue This Month', 
+      value: stats ? `${(stats.monthRevenue || 0).toLocaleString()} RWF` : '—',
+      sub: 'Monthly total',
+      gradientStart: '#10B981',
+      gradientEnd: '#059669'
+    },
+  ];
+
   const renderDashboard = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-start flex-wrap gap-3">
@@ -331,18 +392,20 @@ const OwnerDashboard: React.FC = () => {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: 14
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: 16
       }}>
-        <StatCard label="Revenue Today" loading={statsLoading} value={stats ? `${(stats.todaySales || 0).toLocaleString()} RWF` : '—'} icon={Icons.revenue} sub="Sales today" />
-        <StatCard label="Total Stores" loading={statsLoading} value={stats?.totalStores ?? '—'} icon={Icons.stores} />
-        <StatCard label="Total Medicines" loading={statsLoading} value={stats?.totalMedicines ?? '—'} icon={Icons.medicines} sub="Across all stores" />
-        <StatCard label="Total Employees" loading={statsLoading} value={stats?.totalEmployees ?? '—'} icon={Icons.users} />
-        <StatCard label="Low Stock Items" loading={statsLoading} value={stats?.lowStockCount ?? '—'} icon={Icons.alert} sub={stats?.lowStockCount ? 'Needs restock' : 'All good'} />
-        <StatCard label="Pending Insurance Claims" loading={statsLoading} value={stats?.pendingClaims ?? '—'} icon={Icons.claims} sub="Insurance" />
-        <StatCard label="Expired Medicines" loading={statsLoading} value={stats?.expiredCount ?? '—'} icon={Icons.alert} />
-        <StatCard label="Out of Stock" loading={statsLoading} value={stats?.outOfStock ?? '—'} icon={Icons.alert} />
-        <StatCard label="Revenue This Month" loading={statsLoading} value={stats ? `${(stats.monthRevenue || 0).toLocaleString()} RWF` : '—'} icon={Icons.revenue} />
+        {statCards.map((card, index) => (
+          <StatCard
+            key={index}
+            label={card.label}
+            value={card.value}
+            sub={card.sub}
+            gradientStart={card.gradientStart}
+            gradientEnd={card.gradientEnd}
+            loading={statsLoading}
+          />
+        ))}
       </div>
 
       <div className="flex gap-3 flex-wrap">
@@ -359,6 +422,7 @@ const OwnerDashboard: React.FC = () => {
           </button>
         ))}
       </div>
+      
       <div style={{
         backgroundColor: '#ffffff',
         border: '1px solid #F1F5F9',
@@ -372,6 +436,7 @@ const OwnerDashboard: React.FC = () => {
           Monitor sales, insurance claims, inventory levels, and store performance across your pharmacies.
         </div>
       </div>
+      
       <div>
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-sm font-semibold text-gray-800">Your Stores</h3>
