@@ -28,6 +28,7 @@ export const inventoryAPI = {
   create: (data: Partial<Medicine>) => api.post('/inventory', data),
   update: (id: string, data: Partial<Medicine>) => api.put(`/inventory/${id}`, data),
   delete: (id: string) => api.delete(`/inventory/${id}`),
+  bulkCreate: (items: Partial<Medicine>[]) => api.post('/inventory/bulk', { items }),
   adjustStock: (id: string, adjustment: number, reason: string) => 
     api.patch(`/inventory/${id}/stock`, { adjustment, reason })
 };

@@ -1,11 +1,10 @@
-// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-   url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -26,188 +25,311 @@ enum SaleStatus {
   CANCELLED
 }
 
+enum InsuranceClaimSubmissionType {
+  DIGITAL
+  PAPER
+  BOTH
+}
+
+enum FormularyStatus {
+  FORMULARY
+  PREFERRED
+  NON_FORMULARY
+  EXCLUDED
+}
+
 model User {
-  id            String        @id @default(uuid())
-  email         String        @unique
-  password      String
-  firstName     String
-  lastName      String
-  phone         String? 
-  role          Role
-  pharmacyId    String?
-  pharmacy      Pharmacy?     @relation(fields: [pharmacyId], references: [id])
-  isActive      Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  
+  id         String    @id @default(uuid())
+  email      String    @unique
+  password   String
+  firstName  String
+  lastName   String
+  phone      String?
+  role       Role
+  pharmacyId String?
+  pharmacy   Pharmacy? @relation(fields: [pharmacyId], references: [id])
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
   // Relations
-  ownedStores   Pharmacy[]    @relation("Owner")
-  staffEntries  Staff[]
-  claims        Claim[]
-  sales         Sale[]
+  ownedStores  Pharmacy[] @relation("Owner")
+  staffEntries Staff[]
+  claims       Claim[]
+  sales        Sale[]
 }
 
 model Pharmacy {
-  id            String        @id @default(uuid())
+  id            String   @id @default(uuid())
   name          String
   address       String?
   phone         String?
   email         String?
-  licenseNumber String        @unique
-  isActive      Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  users         User[]    // This links back to User model
-  
+  licenseNumber String   @unique
+  tin           String?  @unique // Rwanda Tax Identification Number for RRA compliance
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  users         User[]
+
   // Relations
-  ownerId       String
-  owner         User          @relation("Owner", fields: [ownerId], references: [id])
-  staff         Staff[]
-  inventory     Inventory[]
-  medicines     Medicine[]
-  sales         Sale[]
-  claims        Claim[]
-  lowStockAlerts LowStockAlert[] // 
+  ownerId        String
+  owner          User            @relation("Owner", fields: [ownerId], references: [id])
+  staff          Staff[]
+  inventory      Inventory[]
+  medicines      Medicine[]
+  sales          Sale[]
+  claims         Claim[]
+  lowStockAlerts LowStockAlert[]
 }
 
 model Staff {
-  id            String        @id @default(uuid())
-  userId        String
-  user          User          @relation(fields: [userId], references: [id])
-  pharmacyId    String
-  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
-  joinedAt      DateTime      @default(now())
-  isActive      Boolean       @default(true)
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  pharmacyId String
+  pharmacy   Pharmacy @relation(fields: [pharmacyId], references: [id])
+  joinedAt   DateTime @default(now())
+  isActive   Boolean  @default(true)
 
   @@unique([userId, pharmacyId])
 }
 
 model Medicine {
-  id            String        @id @default(uuid())
-  name          String
-  genericName   String?
-  category      String?
-  manufacturer   String?
-  strength      String?
-  form          String?
-  description   String?
+  id                   String   @id @default(uuid())
+  name                 String
+  genericName          String?
+  category             String?
+  manufacturer         String?
+  strength             String?
+  form                 String?
+  description          String?
   requiresPrescription Boolean  @default(false)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
   // Relations
-  pharmacyId    String
-  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
-  inventory     Inventory[]
-  
+  pharmacyId         String
+  pharmacy           Pharmacy                @relation(fields: [pharmacyId], references: [id])
+  inventory          Inventory[]
+  insuranceCoverages InsuranceCoverageRule[]
+
   @@unique([name, pharmacyId])
 }
 
 model Inventory {
-  id            String        @id @default(uuid())
-  medicineId    String
-  medicine      Medicine      @relation(fields: [medicineId], references: [id])
-  pharmacyId    String
-  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
-  batchNumber   String
-  expiryDate    DateTime
-  quantity      Int
-  reorderLevel  Int
-  unitPrice     Float
-  sellingPrice  Float
-  supplierId    String?
-  supplier      Supplier?     @relation(fields: [supplierId], references: [id])
-  location      String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  
-  // Relations - 
-  saleItems     SaleItem[]
-  claims        Claim[]
+  id           String    @id @default(uuid())
+  medicineId   String
+  medicine     Medicine  @relation(fields: [medicineId], references: [id])
+  pharmacyId   String
+  pharmacy     Pharmacy  @relation(fields: [pharmacyId], references: [id])
+  batchNumber  String
+  expiryDate   DateTime
+  quantity     Int
+  reorderLevel Int
+  unitPrice    Float
+  sellingPrice Float
+  supplierId   String?
+  supplier     Supplier? @relation(fields: [supplierId], references: [id])
+  location     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  saleItems      SaleItem[]
+  claims         Claim[]
   lowStockAlerts LowStockAlert[]
-  
+
   @@unique([medicineId, pharmacyId, batchNumber])
   @@index([expiryDate])
   @@index([quantity])
 }
 
 model Supplier {
-  id            String        @id @default(uuid())
+  id            String   @id @default(uuid())
   name          String
   contactPerson String?
   email         String?
   phone         String?
   address       String?
   taxId         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
   // Relations
-  inventory     Inventory[]
+  inventory Inventory[]
 }
 
 model Sale {
-  id            String        @id @default(uuid())
-  invoiceNumber String        @unique
+  id            String     @id @default(uuid())
+  invoiceNumber String     @unique
   pharmacyId    String
-  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
+  pharmacy      Pharmacy   @relation(fields: [pharmacyId], references: [id])
   userId        String
-  user          User          @relation(fields: [userId], references: [id])
+  user          User       @relation(fields: [userId], references: [id])
   customerName  String?
   customerEmail String?
   subtotal      Float
-  tax           Float         @default(0)
-  discount      Float         @default(0)
+  tax           Float      @default(0)
+  discount      Float      @default(0)
   total         Float
-  status        SaleStatus    @default(COMPLETED)
-  createdAt     DateTime      @default(now())
-  
+  status        SaleStatus @default(COMPLETED)
+  createdAt     DateTime   @default(now())
+
+  // Insurance fields
+  insurancePlanId       String?
+  insurancePlan         InsurancePlan? @relation(fields: [insurancePlanId], references: [id])
+  insuranceMemberNumber String?
+  insuranceContribution Float?
+  patientCopay          Float?
+  coverageDetails       Json?
+
   // Relations
-  items         SaleItem[]
+  items SaleItem[]
 }
 
 model SaleItem {
-  id            String        @id @default(uuid())
-  saleId        String
-  sale          Sale          @relation(fields: [saleId], references: [id])
-  inventoryId   String
-  inventory     Inventory     @relation(fields: [inventoryId], references: [id])
-  medicineName  String
-  quantity      Int
-  unitPrice     Float
-  totalPrice    Float
+  id           String    @id @default(uuid())
+  saleId       String
+  sale         Sale      @relation(fields: [saleId], references: [id])
+  inventoryId  String
+  inventory    Inventory @relation(fields: [inventoryId], references: [id])
+  medicineName String
+  quantity     Int
+  unitPrice    Float
+  totalPrice   Float
+
+  // Insurance fields per item
+  insuranceAmount Float? @default(0)
+  patientAmount   Float? @default(0)
+  coveragePercent Float?
 }
 
 model Claim {
-  id            String        @id @default(uuid())
-  claimNumber   String        @unique
-  pharmacyId    String
-  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
-  userId        String
-  user          User          @relation(fields: [userId], references: [id])
-  inventoryId   String?
-  inventory     Inventory?    @relation(fields: [inventoryId], references: [id])
-  claimType     String
-  description   String
-  quantity      Int
-  amount        Float?
-  status        ClaimStatus   @default(PENDING)
-  approvedBy    String?
-  approvedAt    DateTime?
-  notes         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id          String      @id @default(uuid())
+  claimNumber String      @unique
+  pharmacyId  String
+  pharmacy    Pharmacy    @relation(fields: [pharmacyId], references: [id])
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  inventoryId String?
+  inventory   Inventory?  @relation(fields: [inventoryId], references: [id])
+  claimType   String
+  description String
+  quantity    Int
+  amount      Float?
+  status      ClaimStatus @default(PENDING)
+  approvedBy  String?
+  approvedAt  DateTime?
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Insurance fields
+  insurancePlanId       String?
+  insurancePlan         InsurancePlan? @relation(fields: [insurancePlanId], references: [id])
+  insuranceMemberNumber String?
+  patientName           String?
+  patientId             String?
+  diagnosis             String?
+  processedAt           DateTime?
+  rejectionReason       String?
+  rejectedAt            DateTime?
+
+  // Relations
+  lineItems ClaimLineItem[]
+
+  @@index([status])
+  @@index([insurancePlanId])
+}
+
+model ClaimLineItem {
+  id              String          @id @default(uuid())
+  claimId         String
+  claim           Claim           @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  medicineId      String
+  medicineName    String
+  quantity        Int
+  unitPrice       Float
+  subtotal        Float
+  coveragePercent Float
+  insuranceAmount Float
+  patientAmount   Float
+  formularyStatus FormularyStatus
+  priceCapApplied Float?
+
+  createdAt DateTime @default(now())
+
+  @@index([claimId])
 }
 
 model LowStockAlert {
-  id            String        @id @default(uuid())
-  inventoryId   String
-  inventory     Inventory     @relation(fields: [inventoryId], references: [id])
-  pharmacyId    String
-  pharmacy      Pharmacy      @relation(fields: [pharmacyId], references: [id])
-  currentStock  Int
-  reorderLevel  Int
-  isResolved    Boolean       @default(false)
-  resolvedAt    DateTime?
-  createdAt     DateTime      @default(now())
+  id           String    @id @default(uuid())
+  inventoryId  String
+  inventory    Inventory @relation(fields: [inventoryId], references: [id])
+  pharmacyId   String
+  pharmacy     Pharmacy  @relation(fields: [pharmacyId], references: [id])
+  currentStock Int
+  reorderLevel Int
+  isResolved   Boolean   @default(false)
+  resolvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+model InsuranceProvider {
+  id                String   @id @default(uuid())
+  name              String
+  shortName         String   @unique
+  icon              String
+  color             String
+  claimRequirements String[]
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  plans InsurancePlan[]
+}
+
+model InsurancePlan {
+  id                   String                       @id @default(uuid())
+  providerId           String
+  provider             InsuranceProvider            @relation(fields: [providerId], references: [id])
+  shortCode            String                       @unique
+  planName             String
+  coveragePercent      Float                        @default(80)
+  patientCopayPercent  Float                        @default(20)
+  requiresPrescription Boolean                      @default(true)
+  claimSubmissionType  InsuranceClaimSubmissionType @default(DIGITAL)
+  notes                String?
+  isActive             Boolean                      @default(true)
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+
+  // Relations
+  medicineCoverages InsuranceCoverageRule[]
+  sales             Sale[]
+  claims            Claim[]
+}
+
+model InsuranceCoverageRule {
+  id              String        @id @default(uuid())
+  insurancePlanId String
+  insurancePlan   InsurancePlan @relation(fields: [insurancePlanId], references: [id])
+  medicineId      String
+  medicine        Medicine      @relation(fields: [medicineId], references: [id])
+
+  // Per-drug pricing
+  coveragePercent Float
+  priceCap        Float?
+  requiresPreAuth Boolean         @default(false)
+  formularyStatus FormularyStatus @default(FORMULARY)
+  notes           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([insurancePlanId, medicineId])
+  @@index([medicineId])
+  @@index([insurancePlanId])
 }

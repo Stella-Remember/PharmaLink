@@ -173,212 +173,199 @@ const InventoryList: React.FC = () => {
   };
 
   // ── IMPORT FROM EXCEL ───────────────────────────────────────────────────────
-  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-      setImportStatus({ type: 'error', message: 'Please upload an Excel file (.xlsx or .xls).' });
-      return;
-    }
-
-    setImporting(true);
-    setImportStatus({ type: null, message: '' });
-
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(firstSheet);
-
-      if (rows.length === 0) {
-        setImportStatus({ type: 'error', message: 'No data found in the Excel file.' });
-        setImporting(false);
-        return;
-      }
-
-      // Validate required fields
-      const requiredFields = ['Trade / Brand Name', 'Category', 'Batch Number', 'Expiry Date', 'Quantity', 'Price (RWF)'];
-      const firstRow = rows[0] as any;
-      const missingFields = requiredFields.filter(f => !firstRow.hasOwnProperty(f));
-      
-      if (missingFields.length > 0) {
-        setImportStatus({ 
-          type: 'error', 
-          message: `Missing columns: ${missingFields.join(', ')}. Please use the template.` 
-        });
-        setImporting(false);
-        return;
-      }
-
-      let successCount = 0;
-      const errors: string[] = [];
-
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i] as any;
-        const rowNum = i + 2;
-
-        // Validate numeric fields
-        if (isNaN(Number(row.Quantity)) || Number(row.Quantity) < 0) {
-          errors.push(`Row ${rowNum}: Invalid Quantity "${row.Quantity}"`);
-          continue;
-        }
-        if (isNaN(Number(row['Price (RWF)'])) || Number(row['Price (RWF)']) <= 0) {
-          errors.push(`Row ${rowNum}: Invalid Price "${row['Price (RWF)']}"`);
-          continue;
-        }
-
-        try {
-          await inventoryAPI.create({
-            medicineName: row['Trade / Brand Name'] || row.medicineName || '',
-            medicineType: row['Medicine Type'] === '® Patented' ? 'PATENTED' : 'GENERIC',
-            genericName: row['Generic Name'] || '',
-            category: row.Category || '',
-            manufacturer: row.Manufacturer || '',
-            strength: row.Strength || '',
-            batchNumber: row['Batch Number'] || row.batchNumber || '',
-            expiryDate: row['Expiry Date'] || row.expiryDate || '',
-            quantity: parseInt(row.Quantity),
-            reorderLevel: parseInt(row['Reorder Level']) || 10,
-            unitPrice: parseFloat(row['Price (RWF)'])
-          });
-          successCount++;
-        } catch (err: any) {
-          const msg = err.response?.data?.message || err.response?.data?.error || 'Failed';
-          errors.push(`Row ${rowNum} (${row['Trade / Brand Name']}): ${msg}`);
-        }
-      }
-
-      if (successCount > 0) {
-        fetchMedicines();
-        setImportStatus({
-          type: errors.length > 0 ? 'error' : 'success',
-          message: `✅ ${successCount} medicine(s) imported successfully.${errors.length > 0 ? `\n⚠️ ${errors.length} row(s) failed:\n${errors.slice(0, 5).join('\n')}` : ''}`,
-        });
-      } else {
-        setImportStatus({ type: 'error', message: `Import failed:\n${errors.slice(0, 5).join('\n')}` });
-      }
-    } catch (error) {
-      setImportStatus({ type: 'error', message: 'Failed to read Excel file. Please check the file format.' });
-    } finally {
-      setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  // ── IMPORT FROM CSV ─────────────────────────────────────────────────────────
-  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.name.endsWith('.csv')) {
-      setImportStatus({ type: 'error', message: 'Please upload a CSV file.' });
-      return;
-    }
-
-    setImporting(true);
-    setImportStatus({ type: null, message: '' });
-
-    const text = await file.text();
-    const lines = text.trim().split('\n');
-    if (lines.length < 2) {
-      setImportStatus({ type: 'error', message: 'CSV is empty or has no data rows.' });
-      setImporting(false);
-      return;
-    }
-
-    // Parse header row (strip quotes)
-    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-    const requiredHeaders = ['Trade / Brand Name', 'Category', 'Batch Number', 'Expiry Date', 'Quantity', 'Price (RWF)'];
-    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-    if (missingHeaders.length > 0) {
-      setImportStatus({ type: 'error', message: `Missing columns: ${missingHeaders.join(', ')}. Download the template first.` });
-      setImporting(false);
-      return;
-    }
-
-    // Parse data rows
-    const rows = lines.slice(1).map(line => {
-      const values: string[] = [];
-      let current = '';
-      let inQuotes = false;
-      for (const char of line) {
-        if (char === '"') { inQuotes = !inQuotes; }
-        else if (char === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
-        else { current += char; }
-      }
-      values.push(current.trim());
-      const obj: Record<string, string> = {};
-      headers.forEach((h, i) => { obj[h] = values[i] || ''; });
-      return obj;
-    }).filter(row => row['Trade / Brand Name']);
-
+const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (!file.name.match(/\.(xlsx|xls)$/i)) {
+    setImportStatus({ type: 'error', message: 'Please upload an Excel file (.xlsx or .xls).' })
+    return
+  }
+ 
+  setImporting(true)
+  setImportStatus({ type: null, message: '' })
+ 
+  try {
+    const data = await file.arrayBuffer()
+    const workbook = XLSX.read(data)
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+    const rows = XLSX.utils.sheet_to_json(firstSheet) as any[]
+ 
     if (rows.length === 0) {
-      setImportStatus({ type: 'error', message: 'No valid data rows found.' });
-      setImporting(false);
-      return;
+      setImportStatus({ type: 'error', message: 'No data found in the Excel file.' })
+      return
     }
-
-    let successCount = 0;
-    const errors: string[] = [];
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const rowNum = i + 2;
-
-      if (isNaN(Number(row.Quantity)) || Number(row.Quantity) < 0) {
-        errors.push(`Row ${rowNum}: Invalid Quantity "${row.Quantity}"`);
-        continue;
-      }
-      if (isNaN(Number(row['Price (RWF)'])) || Number(row['Price (RWF)']) <= 0) {
-        errors.push(`Row ${rowNum}: Invalid Price "${row['Price (RWF)']}"`);
-        continue;
-      }
-
-      try {
-        await inventoryAPI.create({
-          medicineName: row['Trade / Brand Name'] || row.medicineName || '',
-          medicineType: row['Medicine Type'] === '® Patented' ? 'PATENTED' : 'GENERIC',
-          genericName: row['Generic Name'] || '',
-          category: row.Category || '',
-          manufacturer: row.Manufacturer || '',
-          strength: row.Strength || '',
-          batchNumber: row['Batch Number'] || row.batchNumber || '',
-          expiryDate: row['Expiry Date'] || row.expiryDate || '',
-          quantity: parseInt(row.Quantity),
-          reorderLevel: parseInt(row['Reorder Level']) || 10,
-          unitPrice: parseFloat(row['Price (RWF)'])
-        });
-        successCount++;
-      } catch (err: any) {
-        const msg = err.response?.data?.message || err.response?.data?.error || 'Failed';
-        errors.push(`Row ${rowNum} (${row['Trade / Brand Name']}): ${msg}`);
-      }
-    }
-
-    if (successCount > 0) {
-      fetchMedicines();
+ 
+    // Validate template columns before sending
+    const requiredFields = ['Trade / Brand Name', 'Category', 'Batch Number', 'Expiry Date', 'Quantity', 'Price (RWF)']
+    const firstRow = rows[0] as any
+    const missingFields = requiredFields.filter(f => !Object.prototype.hasOwnProperty.call(firstRow, f))
+    if (missingFields.length > 0) {
       setImportStatus({
-        type: errors.length > 0 ? 'error' : 'success',
-        message: `✅ ${successCount} medicine(s) imported successfully.${errors.length > 0 ? `\n⚠️ ${errors.length} row(s) failed:\n${errors.slice(0, 5).join('\n')}` : ''}`,
-      });
-    } else {
-      setImportStatus({ type: 'error', message: `Import failed:\n${errors.slice(0, 5).join('\n')}` });
+        type: 'error',
+        message: `Missing columns: ${missingFields.join(', ')}. Please use the provided template.`
+      })
+      return
     }
+ 
+    // Map rows to API format — send ALL at once (single HTTP request)
+    const items = rows.map((row: any) => ({
+      medicineName: row['Trade / Brand Name'] || '',
+      medicineType: (row['Medicine Type'] === '® Patented' ? 'PATENTED' : 'GENERIC') as 'PATENTED' | 'GENERIC',
+      genericName: row['Generic Name'] || '',
+      category: row['Category'] || '',
+      manufacturer: row['Manufacturer'] || '',
+      strength: row['Strength'] || '',
+      batchNumber: String(row['Batch Number'] || ''),
+      expiryDate: row['Expiry Date'],   // send raw — backend parseExpiryDate handles all formats
+      quantity: Number(row['Quantity']) || 0,
+      reorderLevel: Number(row['Reorder Level']) || 10,
+      unitPrice: Number(row['Price (RWF)']) || 0
+    })) as Partial<Medicine>[]
+ 
+    const response = await inventoryAPI.bulkCreate(items)
+    const { successCount, failCount, results } = response.data
+ 
+    const failedRows = results
+      .filter((r: any) => !r.success)
+      .slice(0, 5)
+      .map((r: any) => `Row ${r.row} (${r.name}): ${r.error}`)
+ 
+    setImportStatus({
+      type: failCount > 0 && successCount === 0 ? 'error' : 'success',
+      message: [
+        successCount > 0 ? `✅ ${successCount} medicine(s) imported successfully.` : '',
+        failCount > 0 ? `⚠️ ${failCount} row(s) failed:\n${failedRows.join('\n')}` : ''
+      ].filter(Boolean).join('\n')
+    })
+ 
+    if (successCount > 0) fetchMedicines()
+ 
+  } catch (error: any) {
+    const serverError = error.response?.data?.error || 'Failed to read Excel file.'
+    setImportStatus({ type: 'error', message: serverError })
+  } finally {
+    setImporting(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+}
+ 
+const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (!file.name.endsWith('.csv')) {
+    setImportStatus({ type: 'error', message: 'Please upload a CSV file.' })
+    return
+  }
+ 
+  setImporting(true)
+  setImportStatus({ type: null, message: '' })
+ 
+  try {
+    const text = await file.text()
+    const lines = text.trim().split('\n')
+    if (lines.length < 2) {
+      setImportStatus({ type: 'error', message: 'CSV is empty or has no data rows.' })
+      return
+    }
+ 
+    // Parse header
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim())
+    const requiredHeaders = ['Trade / Brand Name', 'Category', 'Batch Number', 'Expiry Date', 'Quantity', 'Price (RWF)']
+    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h))
+    if (missingHeaders.length > 0) {
+      setImportStatus({
+        type: 'error',
+        message: `Missing columns: ${missingHeaders.join(', ')}. Download the template first.`
+      })
+      return
+    }
+ 
+    // Parse CSV rows (handles quoted commas correctly)
+    const parseCSVLine = (line: string): string[] => {
+      const values: string[] = []
+      let current = ''
+      let inQuotes = false
+      for (const char of line) {
+        if (char === '"') { inQuotes = !inQuotes }
+        else if (char === ',' && !inQuotes) { values.push(current.trim()); current = '' }
+        else { current += char }
+      }
+      values.push(current.trim())
+      return values
+    }
+ 
+    const rows = lines
+      .slice(1)
+      .map(line => {
+        const values = parseCSVLine(line)
+        const obj: Record<string, string> = {}
+        headers.forEach((h, i) => { obj[h] = values[i] || '' })
+        return obj
+      })
+      .filter(row => row['Trade / Brand Name']?.trim())
+ 
+    if (rows.length === 0) {
+      setImportStatus({ type: 'error', message: 'No valid data rows found.' })
+      return
+    }
+ 
+    // Map and send all at once
+    const items = rows.map(row => ({
+      medicineName: row['Trade / Brand Name'] || '',
+      medicineType: (row['Medicine Type'] === '® Patented' ? 'PATENTED' : 'GENERIC') as 'PATENTED' | 'GENERIC',
+      genericName: row['Generic Name'] || '',
+      category: row['Category'] || '',
+      manufacturer: row['Manufacturer'] || '',
+      strength: row['Strength'] || '',
+      batchNumber: row['Batch Number'] || '',
+      expiryDate: row['Expiry Date'],
+      quantity: Number(row['Quantity']) || 0,
+      reorderLevel: Number(row['Reorder Level']) || 10,
+      unitPrice: Number(row['Price (RWF)']) || 0
+    })) as Partial<Medicine>[]
+ 
+    const response = await inventoryAPI.bulkCreate(items)
+    const { successCount, failCount, results } = response.data
+ 
+    const failedRows = results
+      .filter((r: any) => !r.success)
+      .slice(0, 5)
+      .map((r: any) => `Row ${r.row} (${r.name}): ${r.error}`)
+ 
+    setImportStatus({
+      type: failCount > 0 && successCount === 0 ? 'error' : 'success',
+      message: [
+        successCount > 0 ? `✅ ${successCount} medicine(s) imported successfully.` : '',
+        failCount > 0 ? `⚠️ ${failCount} row(s) failed:\n${failedRows.join('\n')}` : ''
+      ].filter(Boolean).join('\n')
+    })
+ 
+    if (successCount > 0) fetchMedicines()
+ 
+  } catch (error: any) {
+    const serverError = error.response?.data?.error || 'Failed to process CSV file.'
+    setImportStatus({ type: 'error', message: serverError })
+  } finally {
+    setImporting(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+}
 
-    setImporting(false);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+  // ── COMPUTED VALUES ────────────────────────────────────────────────────────
+  const uniqueCategories: string[] = Array.from(
+    new Set(medicines.map((m: Medicine) => m.category).filter(Boolean))
+  ).sort();
 
-  const filteredMedicines = medicines.filter(med => {
-    const name = med.name || med.medicineName || '';
-    const matchesSearch =
-      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (med.batchNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (med.genericName || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || med.category === categoryFilter;
+  const filteredMedicines: Medicine[] = medicines.filter((medicine: Medicine) => {
+    const matchesSearch = (
+      medicine.medicineName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      medicine.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      medicine.genericName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      medicine.batchNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const matchesCategory = categoryFilter === 'all' || medicine.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
-
-  const uniqueCategories = [...new Set(medicines.map(m => m.category).filter(Boolean))];
 
   return (
     <div className="space-y-4">
@@ -403,7 +390,7 @@ const InventoryList: React.FC = () => {
                 onClick={handleDownloadExcelTemplate}
                 className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-t-lg"
               >
-                🗂Excel Template (.xlsx)
+                🧾 Excel Template (.xlsx)
               </button>
               <button
                 onClick={handleDownloadCSVTemplate}
